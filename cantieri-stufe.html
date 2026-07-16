@@ -333,8 +333,15 @@
 <body>
 <div id="root"><div class="loading">Carico i dati...</div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
+  // ====== CONFIGURAZIONE SUPABASE ======
+  const SUPABASE_URL = 'https://skywsgcnjmwgtbwuveqr.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_LuejoDPsKr8zdtGg2YUXzw_v1zVYJqH';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // ======================================
+
   const STORAGE_KEY = 'stufe-app-data';
   const DOW = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
@@ -374,28 +381,12 @@
     return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function waitForStorage(maxWaitMs){
-    return new Promise((resolve) => {
-      const start = Date.now();
-      (function check(){
-        if (window.storage && typeof window.storage.get === 'function') { resolve(true); return; }
-        if (Date.now() - start > maxWaitMs) { resolve(false); return; }
-        setTimeout(check, 100);
-      })();
-    });
-  }
-
   async function load(){
-    const ready = await waitForStorage(4000);
-    if (!ready) {
-      saveErr = true;
-      render();
-      return;
-    }
     try {
-      const res = await window.storage.get(STORAGE_KEY, false);
-      if (res && res.value) data = JSON.parse(res.value);
-    } catch(e) { /* nessun dato salvato ancora, va bene */ }
+      const { data: row, error } = await sb.from('app_storage').select('value').eq('key', STORAGE_KEY).maybeSingle();
+      if (error) throw error;
+      if (row && row.value) data = row.value;
+    } catch(e) { /* nessun dato salvato ancora, o errore di connessione: si parte da dati vuoti */ }
     if (!Array.isArray(data.assistances)) data.assistances = [];
     // migrazione: se erano ancora i nomi generici di prima, passa ai nomi reali
     if (data.teams && data.teams.A === 'Squadra 1' && data.teams.B === 'Squadra 2') {
@@ -413,11 +404,9 @@
   }
 
   async function persist(){
-    const ready = await waitForStorage(4000);
-    if (!ready) { saveErr = true; render(); return; }
     try {
-      const ok = await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
-      saveErr = !ok;
+      const { error } = await sb.from('app_storage').upsert({ key: STORAGE_KEY, value: data, updated_at: new Date().toISOString() });
+      saveErr = !!error;
     } catch(e) { saveErr = true; }
     render();
   }
@@ -869,7 +858,7 @@
         </nav>
       </div>
       <main>
-        ${saveErr ? '<div class="banner-err"><strong>Il salvataggio non è attivo.</strong>Su Claude la memoria dei dati funziona solo dopo aver pubblicato questo artefatto (pulsante "Pubblica" in alto). Fino ad allora le modifiche non vengono conservate.</div>' : ''}
+        ${saveErr ? '<div class="banner-err"><strong>Il salvataggio non è riuscito.</strong>Controlla la connessione internet e che le chiavi Supabase nel codice siano corrette. Le ultime modifiche potrebbero non essere state salvate.</div>' : ''}
         ${tab === 'calendario' ? renderCalendario() : ''}
         ${tab === 'mese' ? renderCalendarioMese() : ''}
         ${tab === 'giorno' ? renderAggiungiGiorno() : ''}

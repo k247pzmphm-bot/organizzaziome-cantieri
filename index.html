@@ -144,23 +144,50 @@
     margin-bottom:6px;
   }
 
-  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;}
+  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px;}
   .cal-cell{
-    aspect-ratio:1;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    border-radius:10px;cursor:pointer;
+    min-height:58px;
+    display:flex;flex-direction:column;align-items:stretch;gap:2px;
+    padding:4px 3px;
+    border-radius:8px;cursor:pointer;
     background:var(--panel);border:1px solid var(--line);
   }
   .cal-cell.empty{visibility:hidden;cursor:default;}
   .cal-cell.today{border-color:var(--ember);}
   .cal-cell.selected{background:var(--ember-soft);border-color:var(--ember);}
-  .cal-daynum{font-size:13px;font-weight:600;}
-  .cal-dots{display:flex;gap:2px;height:6px;}
-  .cal-dot{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--line);background:transparent;}
-  .cal-dot.A{border-color:var(--teal);}
-  .cal-dot.B{border-color:var(--amber);}
-  .cal-dot.filled.A{background:var(--teal);}
-  .cal-dot.filled.B{background:var(--amber);}
+  .cal-cell.holiday{background:var(--free-soft);}
+  .cal-daynum{font-size:10.5px;font-weight:700;text-align:center;color:var(--ink-soft);}
+  .cal-cell.today .cal-daynum{color:var(--ember);}
+  .holiday-mark{color:var(--free);font-size:6px;vertical-align:middle;}
+  .cal-events{display:flex;flex-direction:column;gap:2px;}
+  .cal-event-chip{
+    font-size:8px;line-height:1.3;font-weight:700;
+    padding:1.5px 3px;border-radius:4px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:#fff;
+  }
+  .cal-event-chip.A{background:var(--teal);}
+  .cal-event-chip.B{background:var(--amber);}
+  .cal-event-chip.free{background:transparent;border:1px solid var(--free);color:var(--free);}
+  .cal-event-chip.assist{background:var(--error);}
+
+  .cal-legend{
+    display:flex;flex-wrap:wrap;gap:10px;
+    font-size:11px;color:var(--ink-soft);font-weight:600;
+    margin-bottom:18px;
+  }
+  .cal-legend span{display:flex;align-items:center;gap:4px;}
+  .cal-legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .cal-legend-dot.A{background:var(--teal);}
+  .cal-legend-dot.B{background:var(--amber);}
+  .cal-legend-dot.assist{background:var(--error);}
+  .cal-legend-dot.holiday{background:var(--free);}
+
+  .holiday-banner{
+    background:var(--free-soft);color:var(--free);
+    font-weight:700;font-size:13px;
+    padding:8px 12px;border-radius:10px;margin-bottom:12px;
+  }
 
   .day-card{
     background:var(--panel);
@@ -277,6 +304,15 @@
     cursor:pointer;
     margin-top:4px;
   }
+  .cancel-btn{
+    background:transparent;
+    color:var(--ink-soft);
+    border:none;
+    padding:8px;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+  }
 
   .slot-pick{
     display:flex;flex-direction:column;gap:6px;
@@ -309,18 +345,6 @@
   .pending-card .actions .assign{background:var(--ember);color:#fff;}
   .pending-card .actions .del{background:var(--bg);color:var(--ink-soft);}
 
-  .backup-row{display:flex;gap:8px;margin-top:12px;}
-  .backup-btn{
-    flex:1;
-    border:1px solid var(--line);
-    background:var(--panel);
-    color:var(--ink);
-    border-radius:10px;
-    padding:9px 8px;
-    font-size:12.5px;
-    font-weight:600;
-    cursor:pointer;
-  }
   .banner-err{
     background:var(--error-soft);color:var(--error);padding:12px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;line-height:1.5;
   }
@@ -354,6 +378,7 @@
   // stato temporaneo dei form
   let formGiorno = { team: 'A', date: todayISO(), note: '' };
   let formLavoro = { client:'', phone:'', address:'', product:'', price:'', notes:'', slotId:'' };
+  let editingJobId = null;
   let assigningJobId = null;
   let expandedSlotId = null;
   let expandedJobId = null;
@@ -363,6 +388,7 @@
   // --- Assistenza: sezione indipendente, nessun collegamento a slots/jobs ---
   let formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
   let assistFormOpen = false;
+  let editingAssistId = null;
   let expandedAssistId = null;
   let confirmDeleteAssistId = null;
 
@@ -426,20 +452,48 @@
   function addJob(e){
     e.preventDefault();
     if (!formLavoro.client.trim()) return;
-    const job = {
-      id: uid(), client: formLavoro.client.trim(), phone: formLavoro.phone.trim(),
-      address: formLavoro.address.trim(), product: formLavoro.product.trim(),
-      price: formLavoro.price.trim(), notes: formLavoro.notes.trim(),
-      slotId: formLavoro.slotId || null, createdAt: todayISO()
-    };
-    data.jobs.push(job);
-    if (formLavoro.slotId) {
-      const slot = data.slots.find(s => s.id === formLavoro.slotId);
-      if (slot) slot.jobId = job.id;
+
+    if (editingJobId) {
+      const job = data.jobs.find(j => j.id === editingJobId);
+      if (job) {
+        job.client = formLavoro.client.trim();
+        job.phone = formLavoro.phone.trim();
+        job.address = formLavoro.address.trim();
+        job.product = formLavoro.product.trim();
+        job.notes = formLavoro.notes.trim();
+      }
+      editingJobId = null;
+    } else {
+      const job = {
+        id: uid(), client: formLavoro.client.trim(), phone: formLavoro.phone.trim(),
+        address: formLavoro.address.trim(), product: formLavoro.product.trim(),
+        price: formLavoro.price.trim(), notes: formLavoro.notes.trim(),
+        slotId: formLavoro.slotId || null, createdAt: todayISO()
+      };
+      data.jobs.push(job);
+      if (formLavoro.slotId) {
+        const slot = data.slots.find(s => s.id === formLavoro.slotId);
+        if (slot) slot.jobId = job.id;
+      }
     }
     formLavoro = { client:'', phone:'', address:'', product:'', price:'', notes:'', slotId:'' };
     tab = 'calendario';
     persist();
+  }
+
+  function startEditJob(jobId){
+    const job = data.jobs.find(j => j.id === jobId);
+    if (!job) return;
+    formLavoro = {
+      client: job.client, phone: job.phone, address: job.address,
+      product: job.product, price: job.price || '', notes: job.notes, slotId: ''
+    };
+    editingJobId = jobId;
+    assigningJobId = null;
+    confirmDeleteJobId = null;
+    tab = 'lavoro';
+    menuOpen = false;
+    render();
   }
 
   function unassignSlot(slotId){
@@ -500,15 +554,42 @@
   function addAssist(e){
     e.preventDefault();
     if (!formAssist.client.trim()) return;
-    data.assistances.push({
-      id: uid(), client: formAssist.client.trim(), phone: formAssist.phone.trim(),
-      address: formAssist.address.trim(), description: formAssist.description.trim(),
-      date: formAssist.date, notes: formAssist.notes.trim(),
-      done: false, createdAt: todayISO()
-    });
+
+    if (editingAssistId) {
+      const a = data.assistances.find(x => x.id === editingAssistId);
+      if (a) {
+        a.client = formAssist.client.trim();
+        a.phone = formAssist.phone.trim();
+        a.address = formAssist.address.trim();
+        a.description = formAssist.description.trim();
+        a.date = formAssist.date;
+        a.notes = formAssist.notes.trim();
+      }
+      editingAssistId = null;
+    } else {
+      data.assistances.push({
+        id: uid(), client: formAssist.client.trim(), phone: formAssist.phone.trim(),
+        address: formAssist.address.trim(), description: formAssist.description.trim(),
+        date: formAssist.date, notes: formAssist.notes.trim(),
+        done: false, createdAt: todayISO()
+      });
+    }
     formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
     assistFormOpen = false;
     persist();
+  }
+
+  function startEditAssist(id){
+    const a = data.assistances.find(x => x.id === id);
+    if (!a) return;
+    formAssist = {
+      client: a.client, phone: a.phone, address: a.address,
+      description: a.description, date: a.date || '', notes: a.notes
+    };
+    editingAssistId = id;
+    assistFormOpen = true;
+    confirmDeleteAssistId = null;
+    render();
   }
 
   function toggleAssistDone(id){
@@ -597,6 +678,7 @@
           if (job.price) html += `<div class="job-expand-row"><span class="jx-label">Prezzo</span><span class="jx-val">${esc(job.price)}</span></div>`;
           if (job.notes) html += `<div class="job-expand-row"><span class="jx-label">Note</span><span class="jx-val">${esc(job.notes)}</span></div>`;
           html += `<button class="del-job-btn ${confirmDeleteJobId===job.id?'confirming':''}" onclick="event.stopPropagation();App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Tocca per confermare':'Elimina lavoro'}</button>`;
+          html += `<button class="cancel-btn" style="align-self:flex-start" onclick="event.stopPropagation();App.startEditJob('${job.id}')">✎ Modifica lavoro</button>`;
           html += `</div>`;
         }
       });
@@ -605,14 +687,46 @@
     return html;
   }
 
+  function easterDate(year){
+    const a = year % 19, b = Math.floor(year/100), c = year % 100;
+    const d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+    const g = Math.floor((b-f+1)/3), h = (19*a + b - d - g + 15) % 30;
+    const i = Math.floor(c/4), k = c % 4;
+    const l = (32 + 2*e + 2*i - h - k) % 7;
+    const m = Math.floor((a + 11*h + 22*l) / 451);
+    const month = Math.floor((h + l - 7*m + 114) / 31);
+    const day = ((h + l - 7*m + 114) % 31) + 1;
+    return new Date(year, month-1, day);
+  }
+
+  function italianHolidays(year){
+    const fixed = [
+      [1,1,'Capodanno'], [1,6,'Epifania'], [4,25,'Liberazione'],
+      [5,1,'Festa dei Lavoratori'], [6,2,'Festa della Repubblica'],
+      [8,15,'Ferragosto'], [11,1,'Ognissanti'], [12,8,'Immacolata Concezione'],
+      [12,25,'Natale'], [12,26,'Santo Stefano']
+    ];
+    const map = {};
+    fixed.forEach(([m,d,name]) => {
+      map[`${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`] = name;
+    });
+    const pasquetta = easterDate(year);
+    pasquetta.setDate(pasquetta.getDate() + 1);
+    map[`${pasquetta.getFullYear()}-${String(pasquetta.getMonth()+1).padStart(2,'0')}-${String(pasquetta.getDate()).padStart(2,'0')}`] = 'Pasquetta';
+    return map;
+  }
+
   function renderCalendarioMese(){
     const first = new Date(calViewYear, calViewMonth, 1);
     const startWeekday = (first.getDay() + 6) % 7; // lunedì=0
     const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
     const todayStr = todayISO();
+    const holidays = italianHolidays(calViewYear);
 
     const slotsByDate = {};
     data.slots.forEach(s => { (slotsByDate[s.date] = slotsByDate[s.date] || []).push(s); });
+    const assistByDate = {};
+    data.assistances.forEach(a => { if (a.date) (assistByDate[a.date] = assistByDate[a.date] || []).push(a); });
 
     let html = `<div class="month-nav">
       <button onclick="App.calPrevMonth()">‹</button>
@@ -626,37 +740,70 @@
     for (let d = 1; d <= daysInMonth; d++) {
       const iso = `${calViewYear}-${String(calViewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const daySlots = slotsByDate[iso] || [];
+      const dayAssist = assistByDate[iso] || [];
       const isToday = iso === todayStr;
       const isSel = iso === calSelectedDate;
-      const dots = daySlots.map(s => `<span class="cal-dot ${s.team} ${s.jobId?'filled':''}"></span>`).join('');
-      html += `<div class="cal-cell ${isToday?'today':''} ${isSel?'selected':''}" onclick="App.calSelectDay('${iso}')">
-        <span class="cal-daynum">${d}</span>
-        <span class="cal-dots">${dots}</span>
+      const isHoliday = !!holidays[iso];
+
+      let chips = daySlots.slice(0,2).map(s => {
+        const job = s.jobId ? data.jobs.find(j => j.id === s.jobId) : null;
+        const label = job ? esc(job.client) : 'Libero';
+        return `<span class="cal-event-chip ${s.team}${job?'':' free'}">${label}</span>`;
+      }).join('');
+      if (dayAssist.length > 0) {
+        chips += `<span class="cal-event-chip assist">🔧 ${dayAssist.length>1? dayAssist.length+' interventi' : esc(dayAssist[0].client)}</span>`;
+      }
+
+      html += `<div class="cal-cell ${isToday?'today':''} ${isSel?'selected':''} ${isHoliday?'holiday':''}" onclick="App.calSelectDay('${iso}')">
+        <span class="cal-daynum">${d}${isHoliday?' <span class=\"holiday-mark\">●</span>':''}</span>
+        <span class="cal-events">${chips}</span>
       </div>`;
     }
     html += `</div>`;
+    html += `<div class="cal-legend">
+      <span><i class="cal-legend-dot A"></i>${esc(data.teams.A)}</span>
+      <span><i class="cal-legend-dot B"></i>${esc(data.teams.B)}</span>
+      <span><i class="cal-legend-dot assist"></i>Assistenza</span>
+      <span><i class="cal-legend-dot holiday"></i>Festività</span>
+    </div>`;
 
     if (calSelectedDate) {
       const daySlots = (slotsByDate[calSelectedDate] || []).slice().sort((a,b) => a.team.localeCompare(b.team));
+      const dayAssist = assistByDate[calSelectedDate] || [];
       const { day, dow, month, year } = fmtDate(calSelectedDate);
+      const holidayName = holidays[calSelectedDate];
       html += `<div class="month-label">${day} ${MONTHS[month]} ${year} · ${dow}</div>`;
-      if (daySlots.length === 0) {
-        html += `<div class="empty" style="padding:24px"><span class="flame">🪵</span>Nessun giorno impostato per questa data.</div>`;
+      if (holidayName) html += `<div class="holiday-banner">🎉 ${esc(holidayName)}</div>`;
+
+      if (daySlots.length === 0 && dayAssist.length === 0) {
+        html += `<div class="empty" style="padding:24px"><span class="flame">🪵</span>Nessun giorno o intervento impostato per questa data.</div>`;
       } else {
-        html += `<div class="day-card">`;
-        daySlots.forEach(slot => {
-          const job = slot.jobId ? data.jobs.find(j => j.id === slot.jobId) : null;
-          const teamName = esc(data.teams[slot.team]);
-          html += `<div class="slot-row">
-            <span class="team-dot ${slot.team}"></span>
-            <div class="slot-info">
-              <div class="slot-team">${teamName}</div>
-              <div class="slot-main ${job?'':'free'}">${job ? esc(job.client) : 'Libero' + (slot.note ? ' · '+esc(slot.note) : '')}</div>
-            </div>
-            <span class="badge ${job?'busy':'free'}">${job?'Occupato':'Libero'}</span>
-          </div>`;
-        });
-        html += `</div><div style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">Per i dettagli completi o per modificare, usa la scheda "Calendario".</div>`;
+        if (daySlots.length > 0) {
+          html += `<div class="day-card">`;
+          daySlots.forEach(slot => {
+            const job = slot.jobId ? data.jobs.find(j => j.id === slot.jobId) : null;
+            const teamName = esc(data.teams[slot.team]);
+            html += `<div class="slot-row">
+              <span class="team-dot ${slot.team}"></span>
+              <div class="slot-info">
+                <div class="slot-team">${teamName}</div>
+                <div class="slot-main ${job?'':'free'}">${job ? esc(job.client) : 'Libero' + (slot.note ? ' · '+esc(slot.note) : '')}</div>
+              </div>
+              <span class="badge ${job?'busy':'free'}">${job?'Occupato':'Libero'}</span>
+            </div>`;
+          });
+          html += `</div>`;
+        }
+        if (dayAssist.length > 0) {
+          html += `<div class="month-label" style="margin-top:18px">🔧 Assistenze</div>`;
+          dayAssist.forEach(a => {
+            html += `<div class="pending-card">
+              <div class="name">${esc(a.client)}</div>
+              <div class="meta">${esc(a.description) || 'Nessun dettaglio'}${a.phone? ' · '+esc(a.phone) : ''}</div>
+            </div>`;
+          });
+        }
+        html += `<div style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">Per modificare i dettagli, usa le schede "Calendario" o "Assistenza".</div>`;
       }
     }
     return html;
@@ -684,27 +831,38 @@
   }
 
   function renderNuovoLavoro(){
-    const free = freeSlotsList();
-    let slotPickHtml = '';
-    if (free.length === 0) {
-      slotPickHtml = `<div style="font-size:13px;color:var(--ink-soft)">Nessun giorno libero al momento. Il lavoro resterà "in attesa" finché non aggiungi un giorno.</div>`;
-    } else {
-      slotPickHtml = `<div class="slot-pick">
-        <label class="opt ${formLavoro.slotId===''?'sel':''}">
-          <input type="radio" name="slot" ${formLavoro.slotId===''?'checked':''} onchange="App.setFormLavoro('slotId','')">
-          Non assegnare ora
-        </label>`;
-      free.forEach(s => {
-        const { day, dow, month } = fmtDate(s.date);
-        slotPickHtml += `<label class="opt ${formLavoro.slotId===s.id?'sel':''}">
-          <input type="radio" name="slot" ${formLavoro.slotId===s.id?'checked':''} onchange="App.setFormLavoro('slotId','${s.id}')">
-          ${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}
-        </label>`;
-      });
-      slotPickHtml += `</div>`;
+    let html = '';
+    if (editingJobId) {
+      html += `<div class="month-label" style="margin-top:0">✎ Modifica lavoro</div>`;
     }
 
-    return `<form onsubmit="App.addJob(event)">
+    let slotPickField = '';
+    if (!editingJobId) {
+      const free = freeSlotsList();
+      let slotPickHtml = '';
+      if (free.length === 0) {
+        slotPickHtml = `<div style="font-size:13px;color:var(--ink-soft)">Nessun giorno libero al momento. Il lavoro resterà "in attesa" finché non aggiungi un giorno.</div>`;
+      } else {
+        slotPickHtml = `<div class="slot-pick">
+          <label class="opt ${formLavoro.slotId===''?'sel':''}">
+            <input type="radio" name="slot" ${formLavoro.slotId===''?'checked':''} onchange="App.setFormLavoro('slotId','')">
+            Non assegnare ora
+          </label>`;
+        free.forEach(s => {
+          const { day, dow, month } = fmtDate(s.date);
+          slotPickHtml += `<label class="opt ${formLavoro.slotId===s.id?'sel':''}">
+            <input type="radio" name="slot" ${formLavoro.slotId===s.id?'checked':''} onchange="App.setFormLavoro('slotId','${s.id}')">
+            ${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}
+          </label>`;
+        });
+        slotPickHtml += `</div>`;
+      }
+      slotPickField = `<div class="field"><label>Assegna a un giorno libero (opzionale)</label>${slotPickHtml}</div>`;
+    } else {
+      slotPickField = `<div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:2px">Per cambiare il giorno assegnato, usa "Libera il giorno" nel Calendario e riassegna da lì.</div>`;
+    }
+
+    html += `<form onsubmit="App.addJob(event)">
       <div class="field"><label>Cliente</label>
         <input type="text" value="${esc(formLavoro.client)}" oninput="App.setFormLavoro('client', this.value)" placeholder="Nome e cognome" required></div>
       <div class="field"><label>Telefono</label>
@@ -715,9 +873,11 @@
         <input type="text" value="${esc(formLavoro.product)}" oninput="App.setFormLavoro('product', this.value)" placeholder="es. Stufa a pellet 9kW"></div>
       <div class="field"><label>Note</label>
         <textarea oninput="App.setFormLavoro('notes', this.value)" placeholder="Dettagli utili per il montaggio">${esc(formLavoro.notes)}</textarea></div>
-      <div class="field"><label>Assegna a un giorno libero (opzionale)</label>${slotPickHtml}</div>
-      <button class="primary-btn" type="submit">Salva lavoro confermato</button>
+      ${slotPickField}
+      <button class="primary-btn" type="submit">${editingJobId ? 'Salva modifiche' : 'Salva lavoro confermato'}</button>
+      ${editingJobId ? `<button type="button" class="cancel-btn" onclick="App.cancelEditJob()">Annulla modifica</button>` : ''}
     </form>`;
+    return html;
   }
 
   function renderInAttesa(){
@@ -746,6 +906,7 @@
       }
       html += `<div class="actions">
           <button class="assign" onclick="App.toggleAssign('${job.id}')">${assigningJobId===job.id?'Chiudi':'Assegna a un giorno'}</button>
+          <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditJob('${job.id}')">✎ Modifica</button>
           <button class="del ${confirmDeleteJobId===job.id?'confirming':''}" onclick="App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Conferma':'Elimina'}</button>
         </div>`;
       if (assigningJobId === job.id) {
@@ -837,11 +998,6 @@
         <div>
           <div class="brand"><span class="flame">🔥</span><h1>Cantieri Stufe</h1></div>
           <div class="sub">Giorni squadre e lavori confermati</div>
-          <div class="backup-row">
-            <button class="backup-btn" onclick="App.exportData()">⬇ Esporta dati</button>
-            <button class="backup-btn" onclick="document.getElementById('importFile').click()">⬆ Importa dati</button>
-            <input type="file" id="importFile" accept=".json" style="display:none" onchange="App.importData(event)">
-          </div>
         </div>
         <button class="menu-btn" onclick="App.toggleMenu()" aria-label="Apri menu"><span></span></button>
       </header>
@@ -869,47 +1025,9 @@
     root.innerHTML = html;
   }
 
-  function exportData(){
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const d = new Date();
-    const stamp = d.toISOString().slice(0,10);
-    a.href = url;
-    a.download = 'cantieri-stufe-' + stamp + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  function importData(event){
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result);
-        if (!parsed || !parsed.teams || !Array.isArray(parsed.slots) || !Array.isArray(parsed.jobs)) {
-          alert('File non valido: non sembra un backup di questa app.');
-          return;
-        }
-        if (!Array.isArray(parsed.assistances)) parsed.assistances = [];
-        data = parsed;
-        persist();
-        alert('Dati importati correttamente.');
-      } catch(e) {
-        alert('Non sono riuscito a leggere il file. Controlla che sia il backup giusto.');
-      }
-      event.target.value = '';
-    };
-    reader.readAsText(file);
-  }
-
   window.App = {
     setTab, addSlot, addJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
     addAssist, toggleAssistDone, requestDeleteAssist,
-    exportData, importData,
     toggleAssign: (id) => { assigningJobId = assigningJobId === id ? null : id; render(); },
     toggleExpand: (slotId) => { expandedSlotId = expandedSlotId === slotId ? null : slotId; render(); },
     toggleExpandJob: (jobId) => { expandedJobId = expandedJobId === jobId ? null : jobId; render(); },

@@ -13,8 +13,8 @@
     --line:#E7E1D5;
     --ember:#A9673E;
     --ember-soft:#EFE1D2;
-    --teal:#3C7C74;
-    --teal-soft:#E2EDEA;
+    --teal:#1D3E66;
+    --teal-soft:#E2E7EE;
     --amber:#A5793A;
     --amber-soft:#F1E6D3;
     --free:#54886A;
@@ -144,27 +144,28 @@
     margin-bottom:6px;
   }
 
-  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px;}
+  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:64px;gap:4px;margin-bottom:10px;}
   .cal-cell{
-    min-height:58px;
+    height:64px;
     display:flex;flex-direction:column;align-items:stretch;gap:2px;
     padding:4px 3px;
     border-radius:8px;cursor:pointer;
     background:var(--panel);border:1px solid var(--line);
+    overflow:hidden;
   }
   .cal-cell.empty{visibility:hidden;cursor:default;}
   .cal-cell.today{border-color:var(--ember);}
   .cal-cell.selected{background:var(--ember-soft);border-color:var(--ember);}
   .cal-cell.holiday{background:var(--free-soft);}
-  .cal-daynum{font-size:10.5px;font-weight:700;text-align:center;color:var(--ink-soft);}
+  .cal-daynum{font-size:10.5px;font-weight:700;text-align:center;color:var(--ink-soft);flex-shrink:0;}
   .cal-cell.today .cal-daynum{color:var(--ember);}
   .holiday-mark{color:var(--free);font-size:6px;vertical-align:middle;}
-  .cal-events{display:flex;flex-direction:column;gap:2px;}
+  .cal-events{display:flex;flex-direction:column;gap:2px;overflow:hidden;}
   .cal-event-chip{
     font-size:8px;line-height:1.3;font-weight:700;
     padding:1.5px 3px;border-radius:4px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    color:#fff;
+    color:#fff;flex-shrink:0;
   }
   .cal-event-chip.A{background:var(--teal);}
   .cal-event-chip.B{background:var(--amber);}
@@ -314,6 +315,14 @@
     cursor:pointer;
   }
 
+  .ready-dot{
+    width:12px;height:12px;border-radius:50%;
+    border:none;cursor:pointer;flex-shrink:0;padding:0;
+    display:inline-block;vertical-align:middle;margin-right:7px;
+  }
+  .ready-dot.green{background:var(--free);}
+  .ready-dot.red{background:var(--error);}
+
   .slot-pick{
     display:flex;flex-direction:column;gap:6px;
     max-height:260px;overflow:auto;
@@ -371,7 +380,7 @@
   const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
   let data = { teams: { A: 'DaFra', B: 'Arte Fuoco' }, slots: [], jobs: [], assistances: [] };
-  let tab = 'calendario';
+  let tab = 'mese';
   let saveErr = false;
   let menuOpen = false;
 
@@ -437,7 +446,7 @@
     render();
   }
 
-  function setTab(t){ tab = t; assigningJobId = null; confirmDeleteJobId = null; confirmDeleteSlotId = null; confirmDeleteAssistId = null; menuOpen = false; render(); }
+  function setTab(t){ tab = t; assigningJobId = null; confirmDeleteJobId = null; confirmDeleteSlotId = null; confirmDeleteAssistId = null; menuOpen = false; editingJobId = null; editingAssistId = null; render(); }
 
   // ---------- azioni ----------
   function addSlot(e){
@@ -461,6 +470,18 @@
         job.address = formLavoro.address.trim();
         job.product = formLavoro.product.trim();
         job.notes = formLavoro.notes.trim();
+        const newSlotId = formLavoro.slotId || null;
+        if (job.slotId !== newSlotId) {
+          if (job.slotId) {
+            const oldSlot = data.slots.find(s => s.id === job.slotId);
+            if (oldSlot) oldSlot.jobId = null;
+          }
+          if (newSlotId) {
+            const newSlot = data.slots.find(s => s.id === newSlotId);
+            if (newSlot) newSlot.jobId = job.id;
+          }
+          job.slotId = newSlotId;
+        }
       }
       editingJobId = null;
     } else {
@@ -468,7 +489,7 @@
         id: uid(), client: formLavoro.client.trim(), phone: formLavoro.phone.trim(),
         address: formLavoro.address.trim(), product: formLavoro.product.trim(),
         price: formLavoro.price.trim(), notes: formLavoro.notes.trim(),
-        slotId: formLavoro.slotId || null, createdAt: todayISO()
+        slotId: formLavoro.slotId || null, createdAt: todayISO(), ready: false
       };
       data.jobs.push(job);
       if (formLavoro.slotId) {
@@ -486,13 +507,20 @@
     if (!job) return;
     formLavoro = {
       client: job.client, phone: job.phone, address: job.address,
-      product: job.product, price: job.price || '', notes: job.notes, slotId: ''
+      product: job.product, price: job.price || '', notes: job.notes, slotId: job.slotId || ''
     };
     editingJobId = jobId;
     assigningJobId = null;
     confirmDeleteJobId = null;
     tab = 'lavoro';
     menuOpen = false;
+    render();
+  }
+
+  function cancelEditJob(){
+    editingJobId = null;
+    formLavoro = { client:'', phone:'', address:'', product:'', price:'', notes:'', slotId:'' };
+    tab = 'calendario';
     render();
   }
 
@@ -571,7 +599,7 @@
         id: uid(), client: formAssist.client.trim(), phone: formAssist.phone.trim(),
         address: formAssist.address.trim(), description: formAssist.description.trim(),
         date: formAssist.date, notes: formAssist.notes.trim(),
-        done: false, createdAt: todayISO()
+        done: false, createdAt: todayISO(), ready: false
       });
     }
     formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
@@ -592,10 +620,31 @@
     render();
   }
 
+  function cancelEditAssist(){
+    editingAssistId = null;
+    formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
+    assistFormOpen = false;
+    render();
+  }
+
   function toggleAssistDone(id){
     const a = data.assistances.find(x => x.id === id);
     if (!a) return;
     a.done = !a.done;
+    persist();
+  }
+
+  function toggleAssistReady(id){
+    const a = data.assistances.find(x => x.id === id);
+    if (!a) return;
+    a.ready = !a.ready;
+    persist();
+  }
+
+  function toggleJobReady(id){
+    const job = data.jobs.find(j => j.id === id);
+    if (!job) return;
+    job.ready = !job.ready;
     persist();
   }
 
@@ -626,8 +675,9 @@
 
 
   // ---------- render helpers ----------
-  function freeSlotsList(){
-    return data.slots.filter(s => !s.jobId && s.date >= todayISO()).sort((a,b)=>a.date.localeCompare(b.date));
+  function freeSlotsList(excludeJobId){
+    excludeJobId = excludeJobId || null;
+    return data.slots.filter(s => (!s.jobId || s.jobId === excludeJobId) && s.date >= todayISO()).sort((a,b)=>a.date.localeCompare(b.date));
   }
 
   function renderCalendario(){
@@ -836,31 +886,26 @@
       html += `<div class="month-label" style="margin-top:0">✎ Modifica lavoro</div>`;
     }
 
-    let slotPickField = '';
-    if (!editingJobId) {
-      const free = freeSlotsList();
-      let slotPickHtml = '';
-      if (free.length === 0) {
-        slotPickHtml = `<div style="font-size:13px;color:var(--ink-soft)">Nessun giorno libero al momento. Il lavoro resterà "in attesa" finché non aggiungi un giorno.</div>`;
-      } else {
-        slotPickHtml = `<div class="slot-pick">
-          <label class="opt ${formLavoro.slotId===''?'sel':''}">
-            <input type="radio" name="slot" ${formLavoro.slotId===''?'checked':''} onchange="App.setFormLavoro('slotId','')">
-            Non assegnare ora
-          </label>`;
-        free.forEach(s => {
-          const { day, dow, month } = fmtDate(s.date);
-          slotPickHtml += `<label class="opt ${formLavoro.slotId===s.id?'sel':''}">
-            <input type="radio" name="slot" ${formLavoro.slotId===s.id?'checked':''} onchange="App.setFormLavoro('slotId','${s.id}')">
-            ${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}
-          </label>`;
-        });
-        slotPickHtml += `</div>`;
-      }
-      slotPickField = `<div class="field"><label>Assegna a un giorno libero (opzionale)</label>${slotPickHtml}</div>`;
+    const free = freeSlotsList(editingJobId);
+    let slotPickHtml = '';
+    if (free.length === 0) {
+      slotPickHtml = `<div style="font-size:13px;color:var(--ink-soft)">Nessun giorno libero al momento. Il lavoro resterà "in attesa" finché non aggiungi un giorno.</div>`;
     } else {
-      slotPickField = `<div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:2px">Per cambiare il giorno assegnato, usa "Libera il giorno" nel Calendario e riassegna da lì.</div>`;
+      slotPickHtml = `<div class="slot-pick">
+        <label class="opt ${formLavoro.slotId===''?'sel':''}">
+          <input type="radio" name="slot" ${formLavoro.slotId===''?'checked':''} onchange="App.setFormLavoro('slotId','')">
+          Non assegnare / lascia in attesa
+        </label>`;
+      free.forEach(s => {
+        const { day, dow, month } = fmtDate(s.date);
+        slotPickHtml += `<label class="opt ${formLavoro.slotId===s.id?'sel':''}">
+          <input type="radio" name="slot" ${formLavoro.slotId===s.id?'checked':''} onchange="App.setFormLavoro('slotId','${s.id}')">
+          ${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}
+        </label>`;
+      });
+      slotPickHtml += `</div>`;
     }
+    const slotPickField = `<div class="field"><label>Giorno / squadra assegnati</label>${slotPickHtml}</div>`;
 
     html += `<form onsubmit="App.addJob(event)">
       <div class="field"><label>Cliente</label>
@@ -892,7 +937,7 @@
       const isOpen = expandedJobId === job.id;
       html += `<div class="pending-card">
         <div onclick="App.toggleExpandJob('${job.id}')" style="cursor:pointer">
-          <div class="name">${esc(job.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
+          <div class="name"><button class="ready-dot ${job.ready?'green':'red'}" onclick="event.stopPropagation();App.toggleJobReady('${job.id}')" title="${job.ready?'Pronto':'Da organizzare'}"></button>${esc(job.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
           <div class="meta">${meta}</div>
         </div>`;
       if (isOpen) {
@@ -930,6 +975,7 @@
     let html = `<button class="primary-btn" style="margin-bottom:16px" onclick="App.toggleAssistForm()">${assistFormOpen ? 'Chiudi' : '+ Nuovo intervento'}</button>`;
 
     if (assistFormOpen) {
+      if (editingAssistId) html += `<div class="month-label" style="margin-top:0">✎ Modifica intervento</div>`;
       html += `<form onsubmit="App.addAssist(event)" style="margin-bottom:22px">
         <div class="field"><label>Cliente</label>
           <input type="text" value="${esc(formAssist.client)}" oninput="App.setFormAssist('client', this.value)" placeholder="Nome e cognome" required></div>
@@ -943,7 +989,8 @@
           <input type="date" value="${formAssist.date}" oninput="App.setFormAssist('date', this.value)"></div>
         <div class="field"><label>Note</label>
           <textarea oninput="App.setFormAssist('notes', this.value)" placeholder="Dettagli utili">${esc(formAssist.notes)}</textarea></div>
-        <button class="primary-btn" type="submit">Salva intervento</button>
+        <button class="primary-btn" type="submit">${editingAssistId ? 'Salva modifiche' : 'Salva intervento'}</button>
+        ${editingAssistId ? `<button type="button" class="cancel-btn" onclick="App.cancelEditAssist()">Annulla modifica</button>` : ''}
       </form>`;
     }
 
@@ -960,7 +1007,7 @@
       const dateLabel = a.date ? (() => { const { day, dow, month } = fmtDate(a.date); return `${day} ${MONTHS[month]} · ${dow}`; })() : 'Nessuna data';
       let c = `<div class="pending-card">
         <div onclick="App.toggleExpandAssist('${a.id}')" style="cursor:pointer">
-          <div class="name">${esc(a.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
+          <div class="name"><button class="ready-dot ${a.ready?'green':'red'}" onclick="event.stopPropagation();App.toggleAssistReady('${a.id}')" title="${a.ready?'Pronto':'Da organizzare'}"></button>${esc(a.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
           <div class="meta">${esc(a.description) || 'Nessun dettaglio'} · ${dateLabel}</div>
         </div>`;
       if (isOpen) {
@@ -974,6 +1021,7 @@
       }
       c += `<div class="actions">
           <button class="assign" onclick="App.toggleAssistDone('${a.id}')">${a.done ? '↺ Riapri' : '✓ Segna fatto'}</button>
+          <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditAssist('${a.id}')">✎ Modifica</button>
           <button class="del ${confirmDeleteAssistId===a.id?'confirming':''}" onclick="App.requestDeleteAssist('${a.id}')">${confirmDeleteAssistId===a.id?'Sicuro? Conferma':'Elimina'}</button>
         </div>
       </div>`;
@@ -1005,7 +1053,7 @@
       <div class="drawer ${menuOpen?'open':''}">
         <div class="drawer-head"><span class="flame">🔥</span>Cantieri Stufe</div>
         <nav class="drawer-nav">
-          <button class="${tab==='calendario'?'active':''}" onclick="App.setTab('calendario')">📅 Calendario</button>
+          <button class="${tab==='calendario'?'active':''}" onclick="App.setTab('calendario')">📅 Calendario lavori</button>
           <button class="${tab==='mese'?'active':''}" onclick="App.setTab('mese')">🗓️ Calendario completo</button>
           <button class="${tab==='giorno'?'active':''}" onclick="App.setTab('giorno')">➕ Aggiungi giorno</button>
           <button class="${tab==='lavoro'?'active':''}" onclick="App.setTab('lavoro')">🛠️ Nuovo lavoro</button>
@@ -1026,8 +1074,9 @@
   }
 
   window.App = {
-    setTab, addSlot, addJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
-    addAssist, toggleAssistDone, requestDeleteAssist,
+    setTab, addSlot, addJob, startEditJob, cancelEditJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
+    addAssist, startEditAssist, cancelEditAssist, toggleAssistDone, requestDeleteAssist,
+    toggleJobReady, toggleAssistReady,
     toggleAssign: (id) => { assigningJobId = assigningJobId === id ? null : id; render(); },
     toggleExpand: (slotId) => { expandedSlotId = expandedSlotId === slotId ? null : slotId; render(); },
     toggleExpandJob: (jobId) => { expandedJobId = expandedJobId === jobId ? null : jobId; render(); },
@@ -1046,3 +1095,4 @@
 </script>
 </body>
 </html>
+

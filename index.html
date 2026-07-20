@@ -30,6 +30,55 @@
     --error-soft:#F4E1DB;
     --extra:#6B5B95;
     --extra-soft:#E7E3EF;
+    --glass-blur:0px;
+    --card-border:var(--line);
+  }
+  :root[data-theme="dark"]{
+    --bg:#15120E;
+    --panel:rgba(35,30,24,0.6);
+    --ink:#F3EEE5;
+    --ink-soft:#A69C8C;
+    --line:rgba(243,238,229,0.10);
+    --ember:#F08A50;
+    --ember-soft:rgba(240,138,80,0.16);
+    --teal:#5FAEEA;
+    --teal-soft:rgba(95,174,234,0.16);
+    --amber:#EFB550;
+    --amber-soft:rgba(239,181,80,0.16);
+    --free:#6BCB8A;
+    --free-soft:rgba(107,203,138,0.16);
+    --error:#F0776A;
+    --error-soft:rgba(240,119,106,0.16);
+    --extra:#B29AE8;
+    --extra-soft:rgba(178,154,232,0.16);
+    --glass-blur:16px;
+    --card-border:rgba(243,238,229,0.10);
+  }
+  :root[data-theme="dark"] body{
+    background:
+      radial-gradient(circle at 15% -8%, rgba(240,138,80,0.16), transparent 42%),
+      radial-gradient(circle at 100% 15%, rgba(95,174,234,0.13), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(178,154,232,0.08), transparent 45%),
+      var(--bg);
+  }
+  :root[data-theme="dark"] .day-card,
+  :root[data-theme="dark"] .pending-card,
+  :root[data-theme="dark"] header.top,
+  :root[data-theme="dark"] .drawer,
+  :root[data-theme="dark"] .stats-teaser,
+  :root[data-theme="dark"] .cal-cell,
+  :root[data-theme="dark"] .quick-actions button,
+  :root[data-theme="dark"] .month-nav button,
+  :root[data-theme="dark"] .menu-btn,
+  :root[data-theme="dark"] .theme-toggle,
+  :root[data-theme="dark"] .field input,
+  :root[data-theme="dark"] .field select,
+  :root[data-theme="dark"] .field textarea,
+  :root[data-theme="dark"] .slot-pick,
+  :root[data-theme="dark"] .team-choice button,
+  :root[data-theme="dark"] .year-pick button{
+    backdrop-filter:blur(var(--glass-blur));
+    -webkit-backdrop-filter:blur(var(--glass-blur));
   }
   *{box-sizing:border-box;}
   body{
@@ -52,7 +101,16 @@
     gap:12px;
   }
   .brand{display:flex;align-items:baseline;gap:8px;}
-  .header-clock{margin-left:auto;text-align:right;flex-shrink:0;padding-top:3px;}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .header-clock{text-align:right;padding-top:3px;}
+  .theme-toggle{
+    width:34px;height:34px;flex-shrink:0;
+    border:1px solid var(--line);background:var(--panel);
+    border-radius:7px;font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .1s ease;
+  }
+  .theme-toggle:active{transform:scale(0.92);}
   .header-clock-date{font-size:10.5px;font-weight:600;color:var(--ink-soft);text-transform:capitalize;}
   .header-clock-time{font-size:19px;font-weight:700;color:var(--ink);letter-spacing:0.02em;font-variant-numeric:tabular-nums;}
   .brand .flame{font-size:20px;}
@@ -69,7 +127,7 @@
     width:40px;height:40px;
     border:1px solid var(--line);
     background:var(--panel);
-    border-radius:12px;
+    border-radius:7px;
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;
     margin-top:2px;
@@ -129,7 +187,7 @@
   .menu-badge{
     display:inline-block;min-width:18px;padding:1px 5px;
     background:var(--error);color:#fff;
-    border-radius:20px;font-size:11px;font-weight:700;
+    border-radius:7px;font-size:11px;font-weight:700;
     text-align:center;vertical-align:middle;
   }
 
@@ -140,7 +198,7 @@
   .quick-actions button{
     display:flex;flex-direction:column;align-items:center;gap:4px;
     border:1px solid var(--line);background:var(--panel);
-    border-radius:12px;padding:10px 4px;
+    border-radius:7px;padding:10px 4px;
     font-size:11px;font-weight:600;color:var(--ink);
     cursor:pointer;
   }
@@ -148,7 +206,7 @@
   .stats-teaser{
     display:flex;align-items:center;gap:12px;
     background:var(--panel);border:1px solid var(--line);
-    border-radius:14px;padding:14px 16px;
+    border-radius:6px;padding:14px 16px;
     margin-bottom:22px;cursor:pointer;
   }
   .stats-teaser-icon{font-size:22px;}
@@ -160,7 +218,7 @@
   .year-pick{display:flex;gap:6px;margin-bottom:14px;}
   .year-pick button{
     border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);
-    border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;
+    border-radius:7px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;
   }
   .year-pick button.sel{background:var(--ember);color:#fff;border-color:var(--ember);}
 
@@ -186,7 +244,7 @@
   .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
   .month-nav button{
     border:1px solid var(--line);background:var(--panel);color:var(--ink);
-    width:34px;height:34px;border-radius:11px;font-size:17px;cursor:pointer;
+    width:34px;height:34px;border-radius:7px;font-size:17px;cursor:pointer;
     box-shadow:0 1px 2px rgba(51,46,40,0.05);
     transition:transform .1s ease;
   }
@@ -204,7 +262,7 @@
     height:64px;
     display:flex;flex-direction:column;align-items:stretch;gap:2px;
     padding:4px 3px;
-    border-radius:11px;cursor:pointer;
+    border-radius:7px;cursor:pointer;
     background:var(--panel);border:1px solid var(--line);
     overflow:hidden;
     transition:transform .1s ease;
@@ -246,13 +304,13 @@
   .holiday-banner{
     background:var(--free-soft);color:var(--free);
     font-weight:700;font-size:13px;
-    padding:8px 12px;border-radius:10px;margin-bottom:12px;
+    padding:8px 12px;border-radius:6px;margin-bottom:12px;
   }
 
   .day-card{
     background:var(--panel);
     border:1px solid var(--line);
-    border-radius:18px;
+    border-radius:6px;
     margin-bottom:12px;
     overflow:hidden;
     box-shadow:0 1px 2px rgba(51,46,40,0.04), 0 4px 14px rgba(51,46,40,0.05);
@@ -286,7 +344,7 @@
     font-size:11px;
     font-weight:700;
     padding:3px 9px;
-    border-radius:20px;
+    border-radius:7px;
     flex-shrink:0;
     white-space:nowrap;
   }
@@ -316,7 +374,7 @@
   .del-job-btn{
     align-self:flex-start;
     border:none;background:var(--error-soft);color:var(--error);
-    border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:600;
+    border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:600;
     cursor:pointer;margin-top:4px;
   }
   .del-job-btn.confirming, .pending-card .actions button.del.confirming, .icon-btn.confirming{
@@ -332,7 +390,7 @@
     width:100%;
     border:1px solid var(--line);
     background:var(--panel);
-    border-radius:10px;
+    border-radius:6px;
     padding:11px 12px;
     font-family:inherit;
     font-size:15px;
@@ -344,7 +402,7 @@
     flex:1;
     border:1.5px solid var(--line);
     background:var(--panel);
-    border-radius:10px;
+    border-radius:6px;
     padding:10px;
     font-weight:600;
     font-size:13.5px;
@@ -358,7 +416,7 @@
     background:var(--ember);
     color:#fff;
     border:none;
-    border-radius:14px;
+    border-radius:6px;
     padding:14px;
     font-weight:700;
     font-size:15px;
@@ -392,11 +450,11 @@
   .slot-pick{
     display:flex;flex-direction:column;gap:6px;
     max-height:260px;overflow:auto;
-    border:1px solid var(--line);border-radius:10px;padding:6px;
+    border:1px solid var(--line);border-radius:6px;padding:6px;
   }
   .slot-pick .opt{
     display:flex;align-items:center;gap:8px;
-    padding:9px 10px;border-radius:8px;cursor:pointer;font-size:14px;
+    padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;
   }
   .slot-pick .opt:hover{background:var(--bg);}
   .slot-pick .opt.sel{background:var(--ember-soft);}
@@ -407,7 +465,7 @@
     background:var(--panel);
     border:1px solid var(--line);
     border-left:3px solid var(--ember);
-    border-radius:16px;
+    border-radius:6px;
     padding:13px 15px;
     margin-bottom:11px;
     box-shadow:0 1px 2px rgba(51,46,40,0.04), 0 4px 14px rgba(51,46,40,0.05);
@@ -416,13 +474,13 @@
   .pending-card .meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
   .pending-card .actions{display:flex;gap:8px;margin-top:10px;}
   .pending-card .actions button{
-    border:none;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;
+    border:none;border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;
   }
   .pending-card .actions .assign{background:var(--ember);color:#fff;}
   .pending-card .actions .del{background:var(--bg);color:var(--ink-soft);}
 
   .banner-err{
-    background:var(--error-soft);color:var(--error);padding:12px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;line-height:1.5;
+    background:var(--error-soft);color:var(--error);padding:12px 14px;border-radius:6px;font-size:13px;margin-bottom:12px;line-height:1.5;
   }
   .banner-err strong{display:block;margin-bottom:3px;}
   .loading{padding:40px;text-align:center;color:var(--ink-soft);}
@@ -445,6 +503,25 @@
   const STORAGE_KEY = 'stufe-app-data';
   const DOW = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+  function loadTheme(){
+    try {
+      const saved = localStorage.getItem('stufe-theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch(e) { /* privacy mode o browser che blocca localStorage: va bene, si usa il default */ }
+    return 'dark';
+  }
+  let theme = loadTheme();
+  function applyTheme(){
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+  function toggleTheme(){
+    theme = theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('stufe-theme', theme); } catch(e) { /* non salvabile, resta valido solo per questa sessione */ }
+    applyTheme();
+    render();
+  }
+  applyTheme();
 
   function formatClockDate(d){
     return `${DOW[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()].toLowerCase()}`;
@@ -1433,9 +1510,12 @@
           <div class="brand"><span class="flame">🔥</span><h1>Cantieri Stufe</h1></div>
           <div class="sub">Giorni squadre e lavori confermati</div>
         </div>
-        <div class="header-clock">
-          <div id="header-clock-date" class="header-clock-date"></div>
-          <div id="header-clock-time" class="header-clock-time"></div>
+        <div class="header-right">
+          <button class="theme-toggle" onclick="App.toggleTheme()" aria-label="Cambia tema">${theme==='dark' ? '☀️' : '🌙'}</button>
+          <div class="header-clock">
+            <div id="header-clock-date" class="header-clock-date"></div>
+            <div id="header-clock-time" class="header-clock-time"></div>
+          </div>
         </div>
       </header>
       <div class="drawer-overlay ${menuOpen?'open':''}" onclick="App.toggleMenu()"></div>
@@ -1464,7 +1544,7 @@
   }
 
   window.App = {
-    setTab, quickAdd, addSlot, toggleGiornoForm, addJob, toggleLavoroForm, startEditJob, cancelEditJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
+    setTab, quickAdd, toggleTheme, addSlot, toggleGiornoForm, addJob, toggleLavoroForm, startEditJob, cancelEditJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
     addAssist, startEditAssist, cancelEditAssist, toggleAssistDone, requestDeleteAssist,
     toggleJobReady, toggleAssistReady,
     toggleAssign: (id) => { assigningJobId = assigningJobId === id ? null : id; render(); },

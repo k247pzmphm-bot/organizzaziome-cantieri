@@ -45,13 +45,16 @@
     padding:22px 18px 16px;
     position:sticky; top:0; z-index:10;
     background:var(--bg);
-    border-bottom:1px solid var(--line);
+    box-shadow:0 1px 0 rgba(51,46,40,0.06), 0 6px 16px rgba(51,46,40,0.04);
     display:flex;
     align-items:flex-start;
     justify-content:flex-start;
     gap:12px;
   }
   .brand{display:flex;align-items:baseline;gap:8px;}
+  .header-clock{margin-left:auto;text-align:right;flex-shrink:0;padding-top:3px;}
+  .header-clock-date{font-size:10.5px;font-weight:600;color:var(--ink-soft);text-transform:capitalize;}
+  .header-clock-time{font-size:19px;font-weight:700;color:var(--ink);letter-spacing:0.02em;font-variant-numeric:tabular-nums;}
   .brand .flame{font-size:20px;}
   h1{
     font-weight:700;
@@ -66,11 +69,14 @@
     width:40px;height:40px;
     border:1px solid var(--line);
     background:var(--panel);
-    border-radius:10px;
+    border-radius:12px;
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;
     margin-top:2px;
+    box-shadow:0 1px 2px rgba(51,46,40,0.05), 0 3px 8px rgba(51,46,40,0.04);
+    transition:transform .1s ease;
   }
+  .menu-btn:active{transform:scale(0.94);}
   .menu-btn span{display:block;width:16px;height:2px;background:var(--ink);position:relative;}
   .menu-btn span::before, .menu-btn span::after{
     content:'';position:absolute;left:0;width:16px;height:2px;background:var(--ink);
@@ -139,6 +145,25 @@
     cursor:pointer;
   }
 
+  .stats-teaser{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:14px 16px;
+    margin-bottom:22px;cursor:pointer;
+  }
+  .stats-teaser-icon{font-size:22px;}
+  .stats-teaser-text{flex:1;}
+  .stats-teaser-title{font-weight:700;font-size:14.5px;}
+  .stats-teaser-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
+  .stats-teaser-arrow{font-size:20px;color:var(--ink-soft);}
+
+  .year-pick{display:flex;gap:6px;margin-bottom:14px;}
+  .year-pick button{
+    border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);
+    border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .year-pick button.sel{background:var(--ember);color:#fff;border-color:var(--ember);}
+
   main{flex:1;padding:16px 18px 100px;}
 
   .empty{
@@ -161,8 +186,11 @@
   .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
   .month-nav button{
     border:1px solid var(--line);background:var(--panel);color:var(--ink);
-    width:34px;height:34px;border-radius:9px;font-size:17px;cursor:pointer;
+    width:34px;height:34px;border-radius:11px;font-size:17px;cursor:pointer;
+    box-shadow:0 1px 2px rgba(51,46,40,0.05);
+    transition:transform .1s ease;
   }
+  .month-nav button:active{transform:scale(0.92);}
   .month-nav-label{font-weight:700;font-size:15px;}
 
   .week-labels{
@@ -171,17 +199,19 @@
     margin-bottom:6px;
   }
 
-  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:64px;gap:4px;margin-bottom:10px;}
+  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:64px;gap:5px;margin-bottom:10px;}
   .cal-cell{
     height:64px;
     display:flex;flex-direction:column;align-items:stretch;gap:2px;
     padding:4px 3px;
-    border-radius:8px;cursor:pointer;
+    border-radius:11px;cursor:pointer;
     background:var(--panel);border:1px solid var(--line);
     overflow:hidden;
+    transition:transform .1s ease;
   }
+  .cal-cell:active{transform:scale(0.95);}
   .cal-cell.empty{visibility:hidden;cursor:default;}
-  .cal-cell.today{border-color:var(--ember);}
+  .cal-cell.today{border-color:var(--ember); box-shadow:0 0 0 1px var(--ember);}
   .cal-cell.selected{background:var(--ember-soft);border-color:var(--ember);}
   .cal-cell.holiday{background:var(--free-soft);}
   .cal-daynum{font-size:10.5px;font-weight:700;text-align:center;color:var(--ink-soft);flex-shrink:0;}
@@ -222,9 +252,10 @@
   .day-card{
     background:var(--panel);
     border:1px solid var(--line);
-    border-radius:14px;
-    margin-bottom:10px;
+    border-radius:18px;
+    margin-bottom:12px;
     overflow:hidden;
+    box-shadow:0 1px 2px rgba(51,46,40,0.04), 0 4px 14px rgba(51,46,40,0.05);
   }
   .day-head{
     display:flex;
@@ -327,12 +358,18 @@
     background:var(--ember);
     color:#fff;
     border:none;
-    border-radius:12px;
+    border-radius:14px;
     padding:14px;
     font-weight:700;
     font-size:15px;
     cursor:pointer;
     margin-top:4px;
+    box-shadow:0 4px 14px rgba(169,103,62,0.28);
+    transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .primary-btn:active{
+    transform:scale(0.98);
+    box-shadow:0 2px 6px rgba(169,103,62,0.22);
   }
   .cancel-btn{
     background:transparent;
@@ -368,11 +405,12 @@
 
   .pending-card{
     background:var(--panel);
-    border:1px solid var(--ember-soft);
+    border:1px solid var(--line);
     border-left:3px solid var(--ember);
-    border-radius:12px;
-    padding:12px 14px;
-    margin-bottom:10px;
+    border-radius:16px;
+    padding:13px 15px;
+    margin-bottom:11px;
+    box-shadow:0 1px 2px rgba(51,46,40,0.04), 0 4px 14px rgba(51,46,40,0.05);
   }
   .pending-card .name{font-weight:700;font-size:14.5px;}
   .pending-card .meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
@@ -408,6 +446,22 @@
   const DOW = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
+  function formatClockDate(d){
+    return `${DOW[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()].toLowerCase()}`;
+  }
+  function formatClockTime(d){
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }
+  function updateClock(){
+    const now = new Date();
+    const dEl = document.getElementById('header-clock-date');
+    const tEl = document.getElementById('header-clock-time');
+    if (dEl) dEl.textContent = formatClockDate(now);
+    if (tEl) tEl.textContent = formatClockTime(now);
+  }
+
   let data = { teams: { A: 'DaFra', B: 'Arte Fuoco' }, slots: [], jobs: [], assistances: [], appointments: [] };
   let tab = 'home';
   let saveErr = false;
@@ -436,6 +490,7 @@
   let calViewYear = (new Date()).getFullYear();
   let calViewMonth = (new Date()).getMonth();
   let calSelectedDate = null;
+  let statsYear = null;
   let formAppt = { title:'', date:'', time:'', notes:'' };
   let apptFormOpen = false;
   let confirmDeleteApptId = null;
@@ -739,6 +794,8 @@
   function calSelectDay(iso){
     calSelectedDate = calSelectedDate === iso ? null : iso; render();
   }
+
+  function setStatsYear(y){ statsYear = y; render(); }
 
   function toggleApptForm(){
     apptFormOpen = !apptFormOpen;
@@ -1203,6 +1260,60 @@
     return html;
   }
 
+  function renderStatistiche(){
+    const todayStr = todayISO();
+    const currentYear = new Date().getFullYear();
+
+    // "fatto" = lavoro con un giorno assegnato la cui data è oggi o già passata
+    const doneAll = data.jobs
+      .filter(j => j.slotId)
+      .map(j => ({ job: j, slot: data.slots.find(s => s.id === j.slotId) }))
+      .filter(x => x.slot && x.slot.date <= todayStr);
+
+    let html = `<div class="month-label" style="margin-top:0">📊 Statistiche cantieri</div>
+    <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:16px">Conta solo i lavori (cantieri), non le assistenze.</div>`;
+
+    // selettore anno semplice: anno corrente e i 2 precedenti, solo se hanno dati
+    const yearsAvailable = Array.from(new Set(doneAll.map(x => x.slot.date.slice(0,4)))).sort().reverse();
+    const year = statsYear && yearsAvailable.includes(statsYear) ? statsYear : String(currentYear);
+
+    if (yearsAvailable.length > 1) {
+      html += `<div class="year-pick">`;
+      yearsAvailable.forEach(y => {
+        html += `<button class="${y===year?'sel':''}" onclick="App.setStatsYear('${y}')">${y}</button>`;
+      });
+      html += `</div>`;
+    }
+
+    const yearJobs = doneAll.filter(x => x.slot.date.startsWith(year));
+    const teamACount = yearJobs.filter(x => x.slot.team === 'A').length;
+    const teamBCount = yearJobs.filter(x => x.slot.team === 'B').length;
+
+    html += `<div class="day-card">
+      <div class="slot-row"><div class="slot-info"><div class="slot-team">Totale ${year}</div><div class="slot-main">${yearJobs.length} cantieri</div></div></div>
+      <div class="slot-row"><div class="slot-info"><div class="slot-team">${esc(data.teams.A)}</div><div class="slot-main">${teamACount} cantieri</div></div></div>
+      <div class="slot-row"><div class="slot-info"><div class="slot-team">${esc(data.teams.B)}</div><div class="slot-main">${teamBCount} cantieri</div></div></div>
+    </div>`;
+
+    const byMonth = Array(12).fill(0);
+    yearJobs.forEach(x => { byMonth[parseInt(x.slot.date.slice(5,7),10) - 1]++; });
+    html += `<div class="month-label">Per mese — ${year}</div><div class="day-card">`;
+    let anyMonth = false;
+    MONTHS.forEach((m, i) => {
+      if (byMonth[i] > 0) {
+        anyMonth = true;
+        html += `<div class="slot-row"><div class="slot-info"><div class="slot-main">${m}</div></div><span class="badge busy">${byMonth[i]}</span></div>`;
+      }
+    });
+    if (!anyMonth) html += `<div class="empty" style="padding:16px">Nessun cantiere completato in questo anno.</div>`;
+    html += `</div>`;
+
+    html += `<div class="month-label">Totale storico</div>
+    <div class="day-card"><div class="slot-row"><div class="slot-info"><div class="slot-main">${doneAll.length} cantieri in totale, da sempre</div></div></div></div>`;
+
+    return html;
+  }
+
   function renderHome(){
     const todayStr = todayISO();
     const in14 = new Date(); in14.setDate(in14.getDate() + 14);
@@ -1215,10 +1326,18 @@
       <button onclick="App.quickAdd('appuntamento')">📌 Appuntamento</button>
     </div>`;
 
-    // --- Da organizzare ---
+    html += `<div class="stats-teaser" onclick="App.setTab('statistiche')">
+      <div class="stats-teaser-icon">📊</div>
+      <div class="stats-teaser-text">
+        <div class="stats-teaser-title">Statistiche cantieri</div>
+        <div class="stats-teaser-sub">Quanti ne hai fatti quest'anno</div>
+      </div>
+      <div class="stats-teaser-arrow">›</div>
+    </div>`;
+
+    // --- Da organizzare (solo cantieri, non assistenze) ---
     const jobsTodo = data.jobs.filter(j => !j.slotId && !j.ready);
-    const assistTodo = data.assistances.filter(a => !a.done && !a.ready);
-    if (jobsTodo.length > 0 || assistTodo.length > 0) {
+    if (jobsTodo.length > 0) {
       html += `<div class="month-label" style="margin-top:0">⚠️ Da organizzare</div>`;
       html += `<div class="day-card">`;
       jobsTodo.forEach(job => {
@@ -1227,15 +1346,6 @@
           <div class="slot-info">
             <div class="slot-team">Lavoro da assegnare</div>
             <div class="slot-main">${esc(job.client)}</div>
-          </div>
-        </div>`;
-      });
-      assistTodo.forEach(a => {
-        html += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('assistenza')">
-          <button class="ready-dot red" onclick="event.stopPropagation();App.toggleAssistReady('${a.id}')" title="Segna pronto" style="margin-left:2px"></button>
-          <div class="slot-info">
-            <div class="slot-team">Assistenza</div>
-            <div class="slot-main">${esc(a.client)}</div>
           </div>
         </div>`;
       });
@@ -1323,6 +1433,10 @@
           <div class="brand"><span class="flame">🔥</span><h1>Cantieri Stufe</h1></div>
           <div class="sub">Giorni squadre e lavori confermati</div>
         </div>
+        <div class="header-clock">
+          <div id="header-clock-date" class="header-clock-date"></div>
+          <div id="header-clock-time" class="header-clock-time"></div>
+        </div>
       </header>
       <div class="drawer-overlay ${menuOpen?'open':''}" onclick="App.toggleMenu()"></div>
       <div class="drawer ${menuOpen?'open':''}">
@@ -1333,6 +1447,7 @@
           <button class="${tab==='calendario'?'active':''}" onclick="App.setTab('calendario')">🏗️ Giorni installatori</button>
           <button class="${tab==='attesa'?'active':''}" onclick="App.setTab('attesa')">🛠️ Lavori confermati${jobsToOrganize>0?` <span class="menu-badge">${jobsToOrganize}</span>`:''}</button>
           <button class="${tab==='assistenza'?'active':''}" onclick="App.setTab('assistenza')">🔧 Assistenze${assistToOrganize>0?` <span class="menu-badge">${assistToOrganize}</span>`:''}</button>
+          <button class="${tab==='statistiche'?'active':''}" onclick="App.setTab('statistiche')">📊 Statistiche</button>
         </nav>
       </div>
       <main>
@@ -1342,8 +1457,10 @@
         ${tab === 'mese' ? renderCalendarioMese() : ''}
         ${tab === 'attesa' ? renderInAttesa() : ''}
         ${tab === 'assistenza' ? renderAssistenza() : ''}
+        ${tab === 'statistiche' ? renderStatistiche() : ''}
       </main>`;
     root.innerHTML = html;
+    updateClock();
   }
 
   window.App = {
@@ -1356,7 +1473,7 @@
     toggleExpandAssist: (id) => { expandedAssistId = expandedAssistId === id ? null : id; render(); },
     toggleAssistForm: () => { assistFormOpen = !assistFormOpen; render(); },
     toggleMenu: () => { menuOpen = !menuOpen; render(); },
-    calPrevMonth, calNextMonth, calSelectDay,
+    calPrevMonth, calNextMonth, calSelectDay, setStatsYear,
     toggleApptForm, addAppt, requestDeleteAppt, setFormAppt,
     setFormGiornoTeam: (t) => { formGiorno.team = t; render(); },
     setFormGiorno: (k, v) => { formGiorno[k] = v; },
@@ -1365,6 +1482,7 @@
   };
 
   load();
+  setInterval(updateClock, 1000);
 })();
 </script>
 </body>

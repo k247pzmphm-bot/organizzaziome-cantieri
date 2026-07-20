@@ -13,6 +13,7 @@
 
 <style>
   :root{
+    color-scheme:light;
     --bg:#F5F2EC;
     --panel:#FFFFFF;
     --ink:#332E28;
@@ -34,6 +35,7 @@
     --card-border:var(--line);
   }
   :root[data-theme="dark"]{
+    color-scheme:dark;
     --bg:#15120E;
     --panel:rgba(35,30,24,0.6);
     --ink:#F3EEE5;
@@ -449,16 +451,34 @@
 
   .slot-pick{
     display:flex;flex-direction:column;gap:6px;
-    max-height:260px;overflow:auto;
+    max-height:280px;overflow:auto;
     border:1px solid var(--line);border-radius:6px;padding:6px;
+    background:var(--bg);
   }
   .slot-pick .opt{
-    display:flex;align-items:center;gap:8px;
-    padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;
+    display:flex;align-items:center;gap:10px;
+    padding:11px 12px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;
+    color:var(--ink);
+    border:1px solid transparent;
   }
-  .slot-pick .opt:hover{background:var(--bg);}
-  .slot-pick .opt.sel{background:var(--ember-soft);}
-  .slot-pick .opt input{margin:0;}
+  .slot-pick .opt:hover{background:var(--panel);}
+  .slot-pick .opt.sel{background:var(--ember-soft);border-color:var(--ember);color:var(--ember);}
+  .slot-pick .opt .opt-team-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--ink-soft);}
+  .slot-pick .opt .opt-team-dot.A{background:var(--teal);}
+  .slot-pick .opt .opt-team-dot.B{background:var(--amber);}
+  .slot-pick .opt input[type="radio"]{
+    appearance:none;-webkit-appearance:none;
+    width:19px;height:19px;flex-shrink:0;
+    border-radius:50%;border:2px solid var(--ink-soft);
+    background:var(--panel);
+    cursor:pointer;position:relative;margin:0;
+  }
+  .slot-pick .opt input[type="radio"]:checked{border-color:var(--ember);}
+  .slot-pick .opt input[type="radio"]:checked::after{
+    content:'';position:absolute;top:50%;left:50%;
+    width:10px;height:10px;border-radius:50%;
+    background:var(--ember);transform:translate(-50%,-50%);
+  }
   .slot-pick .empty-note{font-size:13px;color:var(--ink-soft);padding:6px;}
 
   .pending-card{
@@ -1191,7 +1211,7 @@
       } else {
         free.forEach(s => {
           const { day, dow, month } = fmtDate(s.date);
-          html += `<div class="opt" onclick="App.assignJobToSlot('${job.id}','${s.id}')">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}</div>`;
+          html += `<div class="opt" onclick="App.assignJobToSlot('${job.id}','${s.id}')"><span class="opt-team-dot ${s.team}"></span><span>${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}</span></div>`;
         });
       }
       html += `</div>`;
@@ -1213,13 +1233,14 @@
         slotPickHtml = `<div class="slot-pick">
           <label class="opt ${formLavoro.slotId===''?'sel':''}">
             <input type="radio" name="slot" ${formLavoro.slotId===''?'checked':''} onchange="App.setFormLavoro('slotId','')">
-            Non assegnare / lascia da assegnare
+            <span>Non assegnare / lascia da assegnare</span>
           </label>`;
         free.forEach(s => {
           const { day, dow, month } = fmtDate(s.date);
           slotPickHtml += `<label class="opt ${formLavoro.slotId===s.id?'sel':''}">
             <input type="radio" name="slot" ${formLavoro.slotId===s.id?'checked':''} onchange="App.setFormLavoro('slotId','${s.id}')">
-            ${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}
+            <span class="opt-team-dot ${s.team}"></span>
+            <span>${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[s.team])}</span>
           </label>`;
         });
         slotPickHtml += `</div>`;

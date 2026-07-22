@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cantieri Stufe">
-<meta name="theme-color" content="#A9673E">
+<meta name="theme-color" content="#2E5A40">
 
 <style>
   :root{
@@ -19,8 +19,8 @@
     --ink:#332E28;
     --ink-soft:#8A8175;
     --line:#E7E1D5;
-    --ember:#A9673E;
-    --ember-soft:#EFE1D2;
+    --ember:#2E5A40;
+    --ember-soft:#DCE7DE;
     --teal:#1D3E66;
     --teal-soft:#E2E7EE;
     --amber:#A5793A;
@@ -41,8 +41,8 @@
     --ink:#F3EEE5;
     --ink-soft:#A69C8C;
     --line:rgba(243,238,229,0.10);
-    --ember:#F08A50;
-    --ember-soft:rgba(240,138,80,0.16);
+    --ember:#2E9E78;
+    --ember-soft:rgba(46,158,120,0.18);
     --teal:#5FAEEA;
     --teal-soft:rgba(95,174,234,0.16);
     --amber:#EFB550;
@@ -58,7 +58,7 @@
   }
   :root[data-theme="dark"] body{
     background:
-      radial-gradient(circle at 15% -8%, rgba(240,138,80,0.16), transparent 42%),
+      radial-gradient(circle at 15% -8%, rgba(46,158,120,0.16), transparent 42%),
       radial-gradient(circle at 100% 15%, rgba(95,174,234,0.13), transparent 40%),
       radial-gradient(circle at 50% 100%, rgba(178,154,232,0.08), transparent 45%),
       var(--bg);
@@ -424,12 +424,12 @@
     font-size:15px;
     cursor:pointer;
     margin-top:4px;
-    box-shadow:0 4px 14px rgba(169,103,62,0.28);
+    box-shadow:0 4px 14px rgba(46,90,64,0.28);
     transition:transform .1s ease, box-shadow .1s ease;
   }
   .primary-btn:active{
     transform:scale(0.98);
-    box-shadow:0 2px 6px rgba(169,103,62,0.22);
+    box-shadow:0 2px 6px rgba(46,90,64,0.22);
   }
   .cancel-btn{
     background:transparent;
@@ -577,7 +577,7 @@
   let confirmDeleteSlotId = null;
 
   // --- Assistenza: sezione indipendente, nessun collegamento a slots/jobs ---
-  let formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
+  let formAssist = { client:'', phone:'', address:'', description:'', date:'', time:'', notes:'' };
   let assistFormOpen = false;
   let editingAssistId = null;
   let expandedAssistId = null;
@@ -588,6 +588,7 @@
   let calViewMonth = (new Date()).getMonth();
   let calSelectedDate = null;
   let statsYear = null;
+  let statsListOpen = false;
   let formAppt = { title:'', date:'', time:'', notes:'' };
   let apptFormOpen = false;
   let confirmDeleteApptId = null;
@@ -645,7 +646,7 @@
       formGiorno = { team: 'A', date: todayISO(), note: '' };
     } else if (kind === 'assistenza') {
       tab = 'assistenza'; assistFormOpen = true; editingAssistId = null;
-      formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
+      formAssist = { client:'', phone:'', address:'', description:'', date:'', time:'', notes:'' };
     } else if (kind === 'appuntamento') {
       tab = 'mese'; apptFormOpen = true;
       formAppt = { title:'', date: calSelectedDate || todayISO(), time:'', notes:'' };
@@ -810,6 +811,7 @@
         a.address = formAssist.address.trim();
         a.description = formAssist.description.trim();
         a.date = formAssist.date;
+        a.time = formAssist.time;
         a.notes = formAssist.notes.trim();
       }
       editingAssistId = null;
@@ -817,11 +819,11 @@
       data.assistances.push({
         id: uid(), client: formAssist.client.trim(), phone: formAssist.phone.trim(),
         address: formAssist.address.trim(), description: formAssist.description.trim(),
-        date: formAssist.date, notes: formAssist.notes.trim(),
+        date: formAssist.date, time: formAssist.time, notes: formAssist.notes.trim(),
         done: false, createdAt: todayISO(), ready: false
       });
     }
-    formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
+    formAssist = { client:'', phone:'', address:'', description:'', date:'', time:'', notes:'' };
     assistFormOpen = false;
     persist();
   }
@@ -831,7 +833,7 @@
     if (!a) return;
     formAssist = {
       client: a.client, phone: a.phone, address: a.address,
-      description: a.description, date: a.date || '', notes: a.notes
+      description: a.description, date: a.date || '', time: a.time || '', notes: a.notes
     };
     editingAssistId = id;
     assistFormOpen = true;
@@ -841,7 +843,7 @@
 
   function cancelEditAssist(){
     editingAssistId = null;
-    formAssist = { client:'', phone:'', address:'', description:'', date:'', notes:'' };
+    formAssist = { client:'', phone:'', address:'', description:'', date:'', time:'', notes:'' };
     assistFormOpen = false;
     render();
   }
@@ -892,7 +894,8 @@
     calSelectedDate = calSelectedDate === iso ? null : iso; render();
   }
 
-  function setStatsYear(y){ statsYear = y; render(); }
+  function setStatsYear(y){ statsYear = y; statsListOpen = false; render(); }
+  function toggleStatsList(){ statsListOpen = !statsListOpen; render(); }
 
   function toggleApptForm(){
     apptFormOpen = !apptFormOpen;
@@ -1144,9 +1147,9 @@
         }
         if (dayAssist.length > 0) {
           html += `<div class="month-label" style="margin-top:18px">🔧 Assistenze</div>`;
-          dayAssist.forEach(a => {
+          dayAssist.slice().sort((a,b) => (a.time||'').localeCompare(b.time||'')).forEach(a => {
             html += `<div class="pending-card">
-              <div class="name">${esc(a.client)}</div>
+              <div class="name">${a.time? esc(a.time)+' · ' : ''}${esc(a.client)}</div>
               <div class="meta">${esc(a.description) || 'Nessun dettaglio'}${a.phone? ' · '+esc(a.phone) : ''}</div>
             </div>`;
           });
@@ -1263,7 +1266,11 @@
     }
 
     const pending = data.jobs.filter(j => !j.slotId);
-    const confirmed = data.jobs.filter(j => j.slotId).sort((a,b) => {
+    const confirmed = data.jobs.filter(j => {
+      if (!j.slotId) return false;
+      const slot = data.slots.find(s => s.id === j.slotId);
+      return slot && slot.date >= todayISO();
+    }).sort((a,b) => {
       const sa = data.slots.find(s => s.id === a.slotId);
       const sb = data.slots.find(s => s.id === b.slotId);
       return (sa?sa.date:'9999').localeCompare(sb?sb.date:'9999');
@@ -1281,7 +1288,7 @@
       pending.forEach(job => { html += jobCard(job, true); });
     }
 
-    html += `<div class="month-label">Confermati</div>`;
+    html += `<div class="month-label">Confermati <span style="font-weight:400;color:var(--ink-soft);text-transform:none;font-size:11.5px">(i cantieri passati sono nelle Statistiche)</span></div>`;
     if (confirmed.length === 0) {
       html += `<div class="empty" style="padding:16px 8px">Nessun lavoro confermato.</div>`;
     } else {
@@ -1305,7 +1312,12 @@
         <div class="field"><label>Problema / intervento richiesto</label>
           <input type="text" value="${esc(formAssist.description)}" oninput="App.setFormAssist('description', this.value)" placeholder="es. Stufa non si accende"></div>
         <div class="field"><label>Data prevista (opzionale)</label>
-          <input type="date" value="${formAssist.date}" oninput="App.setFormAssist('date', this.value)"></div>
+          <input type="date" value="${formAssist.date}" oninput="App.setFormAssist('date', this.value)">
+          ${formAssist.date ? `<button type="button" class="cancel-btn" style="padding:6px 0" onclick="App.setFormAssist('date','')">✕ Rimuovi data</button>` : ''}
+        </div>
+        <div class="field"><label>Orario (opzionale)</label>
+          <input type="time" value="${formAssist.time}" oninput="App.setFormAssist('time', this.value)">
+        </div>
         <div class="field"><label>Note</label>
           <textarea oninput="App.setFormAssist('notes', this.value)" placeholder="Dettagli utili">${esc(formAssist.notes)}</textarea></div>
         <button class="primary-btn" type="submit">${editingAssistId ? 'Salva modifiche' : 'Salva intervento'}</button>
@@ -1313,7 +1325,7 @@
       </form>`;
     }
 
-    const pending = data.assistances.filter(a => !a.done).sort((a,b) => (a.date||'9999').localeCompare(b.date||'9999'));
+    const pending = data.assistances.filter(a => !a.done).sort((a,b) => (a.date||'9999').localeCompare(b.date||'9999') || (a.time||'').localeCompare(b.time||''));
     const done = data.assistances.filter(a => a.done).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
 
     if (pending.length === 0 && done.length === 0) {
@@ -1323,7 +1335,7 @@
 
     function assistCard(a){
       const isOpen = expandedAssistId === a.id;
-      const dateLabel = a.date ? (() => { const { day, dow, month } = fmtDate(a.date); return `${day} ${MONTHS[month]} · ${dow}`; })() : 'Nessuna data';
+      const dateLabel = a.date ? (() => { const { day, dow, month } = fmtDate(a.date); return `${day} ${MONTHS[month]} · ${dow}${a.time? ' · '+esc(a.time) : ''}`; })() : 'Nessuna data';
       let c = `<div class="pending-card">
         <div onclick="App.toggleExpandAssist('${a.id}')" style="cursor:pointer">
           <div class="name"><button class="ready-dot ${a.ready?'green':'red'}" onclick="event.stopPropagation();App.toggleAssistReady('${a.id}')" title="${a.ready?'Pronto':'Da organizzare'}"></button>${esc(a.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
@@ -1409,6 +1421,27 @@
     html += `<div class="month-label">Totale storico</div>
     <div class="day-card"><div class="slot-row"><div class="slot-info"><div class="slot-main">${doneAll.length} cantieri in totale, da sempre</div></div></div></div>`;
 
+    html += `<button class="cancel-btn" style="padding:10px 0;font-size:13.5px" onclick="App.toggleStatsList()">${statsListOpen ? '▾ Nascondi elenco cantieri' : '▸ Vedi elenco cantieri — ' + year}</button>`;
+    if (statsListOpen) {
+      const sortedYearJobs = yearJobs.slice().sort((a,b) => b.slot.date.localeCompare(a.slot.date));
+      if (sortedYearJobs.length === 0) {
+        html += `<div class="empty" style="padding:16px">Nessun cantiere da mostrare per il ${year}.</div>`;
+      } else {
+        html += `<div class="day-card">`;
+        sortedYearJobs.forEach(({job, slot}) => {
+          const { day, dow, month } = fmtDate(slot.date);
+          html += `<div class="slot-row">
+            <span class="team-dot ${slot.team}"></span>
+            <div class="slot-info">
+              <div class="slot-team">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[slot.team])}</div>
+              <div class="slot-main">${esc(job.client)}</div>
+            </div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+    }
+
     return html;
   }
 
@@ -1480,16 +1513,17 @@
       .filter(a => !a.done && a.date && a.date >= todayStr && a.date <= in14Str)
       .sort((a,b) => a.date.localeCompare(b.date));
 
+    const upcomingAssistSorted = upcomingAssist.slice().sort((a,b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''));
     html += `<div class="month-label">🔧 Prossime assistenze (14 giorni)</div>`;
-    if (upcomingAssist.length === 0) {
+    if (upcomingAssistSorted.length === 0) {
       html += `<div class="empty" style="padding:20px"><span class="flame">✅</span>Nessuna assistenza nei prossimi 14 giorni.</div>`;
     } else {
       html += `<div class="day-card">`;
-      upcomingAssist.forEach(a => {
+      upcomingAssistSorted.forEach(a => {
         const { day, dow, month } = fmtDate(a.date);
         html += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('assistenza')">
           <div class="slot-info">
-            <div class="slot-team">${day} ${MONTHS[month]} · ${dow}</div>
+            <div class="slot-team">${day} ${MONTHS[month]} · ${dow}${a.time? ' · '+esc(a.time) : ''}</div>
             <div class="slot-main">${esc(a.client)}</div>
           </div>
         </div>`;
@@ -1574,7 +1608,7 @@
     toggleExpandAssist: (id) => { expandedAssistId = expandedAssistId === id ? null : id; render(); },
     toggleAssistForm: () => { assistFormOpen = !assistFormOpen; render(); },
     toggleMenu: () => { menuOpen = !menuOpen; render(); },
-    calPrevMonth, calNextMonth, calSelectDay, setStatsYear,
+    calPrevMonth, calNextMonth, calSelectDay, setStatsYear, toggleStatsList,
     toggleApptForm, addAppt, requestDeleteAppt, setFormAppt,
     setFormGiornoTeam: (t) => { formGiorno.team = t; render(); },
     setFormGiorno: (k, v) => { formGiorno[k] = v; },

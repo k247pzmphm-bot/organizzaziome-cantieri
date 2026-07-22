@@ -217,6 +217,8 @@
   .stats-teaser-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
   .stats-teaser-arrow{font-size:20px;color:var(--ink-soft);}
 
+  .two-col > div, .home-grid > div{min-width:0;}
+
   .year-pick{display:flex;gap:6px;margin-bottom:14px;}
   .year-pick button{
     border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);
@@ -513,6 +515,42 @@
   .loading{padding:40px;text-align:center;color:var(--ink-soft);}
 
   ::-webkit-scrollbar{width:0;height:0;}
+  /* ===== DESKTOP (schermi larghi) ===== */
+  @media (min-width: 900px){
+    #root{ max-width:none; width:100%; }
+
+    .menu-btn{ display:none; }
+    .drawer-overlay{ display:none !important; }
+    .drawer{
+      transform:none;
+      box-shadow:1px 0 0 var(--card-border);
+      width:250px;
+    }
+
+    header.top{ padding-left:280px; }
+    main{
+      margin-left:250px;
+      max-width:1180px;
+      padding:22px 32px 100px;
+    }
+
+    .two-col{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:28px;
+      align-items:start;
+    }
+    .home-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+      gap:28px;
+      align-items:start;
+    }
+    .month-grid{ grid-auto-rows:84px; }
+    .cal-cell{ height:84px; padding:6px 5px; }
+    .cal-event-chip{ font-size:9px; }
+    .quick-actions{ grid-template-columns:repeat(4, 160px); }
+  }
 </style>
 </head>
 <body>
@@ -1370,19 +1408,30 @@
       return html;
     }
 
-    html += `<div class="month-label" style="margin-top:4px">Da assegnare</div>`;
+    let pendingHtml = '';
     if (pending.length === 0) {
-      html += `<div class="empty" style="padding:16px 8px">Nessun lavoro da assegnare.</div>`;
+      pendingHtml = `<div class="empty" style="padding:16px 8px">Nessun lavoro da assegnare.</div>`;
     } else {
-      pending.forEach(job => { html += jobCard(job, true); });
+      pending.forEach(job => { pendingHtml += jobCard(job, true); });
     }
 
-    html += `<div class="month-label">Confermati <span style="font-weight:400;color:var(--ink-soft);text-transform:none;font-size:11.5px">(i cantieri passati sono nelle Statistiche)</span></div>`;
+    let confirmedHtml = '';
     if (confirmed.length === 0) {
-      html += `<div class="empty" style="padding:16px 8px">Nessun lavoro confermato.</div>`;
+      confirmedHtml = `<div class="empty" style="padding:16px 8px">Nessun lavoro confermato.</div>`;
     } else {
-      confirmed.forEach(job => { html += jobCard(job, false); });
+      confirmed.forEach(job => { confirmedHtml += jobCard(job, false); });
     }
+
+    html += `<div class="two-col">
+      <div>
+        <div class="month-label" style="margin-top:4px">Da assegnare</div>
+        ${pendingHtml}
+      </div>
+      <div>
+        <div class="month-label" style="margin-top:4px">Confermati <span style="font-weight:400;color:var(--ink-soft);text-transform:none;font-size:11.5px">(i cantieri passati sono nelle Statistiche)</span></div>
+        ${confirmedHtml}
+      </div>
+    </div>`;
     return html;
   }
 
@@ -1450,14 +1499,21 @@
       return c;
     }
 
-    if (pending.length > 0) {
-      html += `<div class="month-label">Da fare</div>`;
-      pending.forEach(a => { html += assistCard(a); });
-    }
-    if (done.length > 0) {
-      html += `<div class="month-label">Completati</div>`;
-      done.forEach(a => { html += assistCard(a); });
-    }
+    let pendingHtml = '';
+    if (pending.length > 0) pending.forEach(a => { pendingHtml += assistCard(a); });
+    let doneHtml = '';
+    if (done.length > 0) done.forEach(a => { doneHtml += assistCard(a); });
+
+    html += `<div class="two-col">
+      <div>
+        <div class="month-label">Da fare</div>
+        ${pending.length > 0 ? pendingHtml : '<div class="empty" style="padding:16px 8px">Nessun intervento da fare.</div>'}
+      </div>
+      <div>
+        <div class="month-label">Completati</div>
+        ${done.length > 0 ? doneHtml : '<div class="empty" style="padding:16px 8px">Nessun intervento completato.</div>'}
+      </div>
+    </div>`;
     return html;
   }
 
@@ -1581,14 +1637,14 @@
       .filter(x => x.slot && x.slot.date >= todayStr && x.slot.date <= in14Str)
       .sort((a,b) => a.slot.date.localeCompare(b.slot.date));
 
-    html += `<div class="month-label">🔥 Prossimi lavori (14 giorni)</div>`;
+    let jobsHtml = '';
     if (upcomingJobs.length === 0) {
-      html += `<div class="empty" style="padding:20px"><span class="flame">🪵</span>Nessun lavoro confermato nei prossimi 14 giorni.</div>`;
+      jobsHtml = `<div class="empty" style="padding:20px"><span class="flame">🪵</span>Nessun lavoro confermato nei prossimi 14 giorni.</div>`;
     } else {
-      html += `<div class="day-card">`;
+      jobsHtml = `<div class="day-card">`;
       upcomingJobs.forEach(({job, slot}) => {
         const { day, dow, month } = fmtDate(slot.date);
-        html += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('attesa')">
+        jobsHtml += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('attesa')">
           <span class="team-dot ${slot.team}"></span>
           <div class="slot-info">
             <div class="slot-team">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[slot.team])}</div>
@@ -1596,30 +1652,29 @@
           </div>
         </div>`;
       });
-      html += `</div>`;
+      jobsHtml += `</div>`;
     }
 
     // --- Prossime assistenze (14 giorni) ---
     const upcomingAssist = data.assistances
       .filter(a => !a.done && a.date && a.date >= todayStr && a.date <= in14Str)
-      .sort((a,b) => a.date.localeCompare(b.date));
+      .sort((a,b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''));
 
-    const upcomingAssistSorted = upcomingAssist.slice().sort((a,b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''));
-    html += `<div class="month-label">🔧 Prossime assistenze (14 giorni)</div>`;
-    if (upcomingAssistSorted.length === 0) {
-      html += `<div class="empty" style="padding:20px"><span class="flame">✅</span>Nessuna assistenza nei prossimi 14 giorni.</div>`;
+    let assistHtml = '';
+    if (upcomingAssist.length === 0) {
+      assistHtml = `<div class="empty" style="padding:20px"><span class="flame">✅</span>Nessuna assistenza nei prossimi 14 giorni.</div>`;
     } else {
-      html += `<div class="day-card">`;
-      upcomingAssistSorted.forEach(a => {
+      assistHtml = `<div class="day-card">`;
+      upcomingAssist.forEach(a => {
         const { day, dow, month } = fmtDate(a.date);
-        html += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('assistenza')">
+        assistHtml += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('assistenza')">
           <div class="slot-info">
             <div class="slot-team">${day} ${MONTHS[month]} · ${dow}${a.time? ' · '+esc(a.time) : ''}</div>
             <div class="slot-main">${esc(a.client)}</div>
           </div>
         </div>`;
       });
-      html += `</div>`;
+      assistHtml += `</div>`;
     }
 
     // --- Prossimi appuntamenti extra (14 giorni) ---
@@ -1627,20 +1682,35 @@
       .filter(a => a.date >= todayStr && a.date <= in14Str)
       .sort((a,b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''));
 
+    let apptHtml = '';
     if (upcomingAppt.length > 0) {
-      html += `<div class="month-label">📌 Prossimi appuntamenti (14 giorni)</div>`;
-      html += `<div class="day-card">`;
+      apptHtml = `<div class="day-card">`;
       upcomingAppt.forEach(a => {
         const { day, dow, month } = fmtDate(a.date);
-        html += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('mese')">
+        apptHtml += `<div class="slot-row" style="cursor:pointer" onclick="App.setTab('mese')">
           <div class="slot-info">
             <div class="slot-team">${day} ${MONTHS[month]} · ${dow}${a.time? ' · '+esc(a.time) : ''}</div>
             <div class="slot-main">${esc(a.title)}</div>
           </div>
         </div>`;
       });
-      html += `</div>`;
+      apptHtml += `</div>`;
     }
+
+    html += `<div class="home-grid">
+      <div>
+        <div class="month-label">🔥 Prossimi lavori (14 giorni)</div>
+        ${jobsHtml}
+      </div>
+      <div>
+        <div class="month-label">🔧 Prossime assistenze (14 giorni)</div>
+        ${assistHtml}
+      </div>
+      ${upcomingAppt.length > 0 ? `<div>
+        <div class="month-label">📌 Prossimi appuntamenti (14 giorni)</div>
+        ${apptHtml}
+      </div>` : ''}
+    </div>`;
 
     return html;
   }

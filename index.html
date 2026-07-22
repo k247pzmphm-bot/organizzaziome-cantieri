@@ -603,6 +603,85 @@
     return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  function icsEscape(s){
+    return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+
+  // Esporta un singolo evento come file .ics: su iPhone apre direttamente
+  // la schermata "Aggiungi a Calendario" di Apple Calendario.
+  function exportEventToCalendar(opts){
+    let dtstartLine, dtendLine;
+    if (opts.time) {
+      const start = new Date(opts.date + 'T' + opts.time + ':00');
+      const end = new Date(start.getTime() + (opts.durationMinutes || 60) * 60000);
+      const fmt = d => `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
+      dtstartLine = `DTSTART:${fmt(start)}`;
+      dtendLine = `DTEND:${fmt(end)}`;
+    } else {
+      const d0 = new Date(opts.date + 'T00:00:00');
+      const d1 = new Date(d0); d1.setDate(d1.getDate() + 1);
+      const f = d => `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}`;
+      dtstartLine = `DTSTART;VALUE=DATE:${f(d0)}`;
+      dtendLine = `DTEND;VALUE=DATE:${f(d1)}`;
+    }
+    const now = new Date();
+    const stamp = `${now.getUTCFullYear()}${pad2(now.getUTCMonth()+1)}${pad2(now.getUTCDate())}T${pad2(now.getUTCHours())}${pad2(now.getUTCMinutes())}${pad2(now.getUTCSeconds())}Z`;
+    const lines = [
+      'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Cantieri Stufe//IT','CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      'UID:' + uid() + '@cantieristufe',
+      'DTSTAMP:' + stamp,
+      dtstartLine, dtendLine,
+      'SUMMARY:' + icsEscape(opts.title)
+    ];
+    if (opts.location) lines.push('LOCATION:' + icsEscape(opts.location));
+    if (opts.notes) lines.push('DESCRIPTION:' + icsEscape(opts.notes));
+    lines.push('END:VEVENT','END:VCALENDAR');
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  function exportJobToCalendar(jobId){
+    const job = data.jobs.find(j => j.id === jobId);
+    if (!job || !job.slotId) return;
+    const slot = data.slots.find(s => s.id === job.slotId);
+    if (!slot) return;
+    const notesParts = [job.product, job.notes].filter(Boolean);
+    exportEventToCalendar({
+      title: 'Cantiere: ' + job.client,
+      date: slot.date,
+      location: job.address,
+      notes: notesParts.join(' — ')
+    });
+  }
+
+  function exportAssistToCalendar(id){
+    const a = data.assistances.find(x => x.id === id);
+    if (!a || !a.date) return;
+    const notesParts = [a.description, a.notes].filter(Boolean);
+    exportEventToCalendar({
+      title: 'Assistenza: ' + a.client,
+      date: a.date,
+      time: a.time || '',
+      location: a.address,
+      notes: notesParts.join(' — ')
+    });
+  }
+
+  function exportApptToCalendar(id){
+    const a = data.appointments.find(x => x.id === id);
+    if (!a) return;
+    exportEventToCalendar({
+      title: a.title,
+      date: a.date,
+      time: a.time || '',
+      notes: a.notes
+    });
+  }
+
   async function load(){
     try {
       const { data: row, error } = await sb.from('app_storage').select('value').eq('key', STORAGE_KEY).maybeSingle();
@@ -1161,12 +1240,13 @@
               <div class="name">${a.time? esc(a.time)+' · ' : ''}${esc(a.title)}</div>
               ${a.notes ? `<div class="meta">${esc(a.notes)}</div>` : ''}
               <div class="actions">
+                <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.exportApptToCalendar('${a.id}')">📅 Calendario iPhone</button>
                 <button class="del ${confirmDeleteApptId===a.id?'confirming':''}" onclick="App.requestDeleteAppt('${a.id}')">${confirmDeleteApptId===a.id?'Sicuro? Conferma':'Elimina'}</button>
               </div>
             </div>`;
           });
         }
-        html += `<div style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">Per modificare i lavori o le assistenze, usa le schede "Calendario lavori" o "Assistenza".</div>`;
+        html += `<div style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">Per modificare i lavori o le assistenze, usa le schede "Giorni installatori", "Lavori confermati" o "Assistenze".</div>`;
       }
     }
     return html;
@@ -1201,7 +1281,8 @@
     if (isPending) {
       html += `<button class="assign" onclick="App.toggleAssign('${job.id}')">${assigningJobId===job.id?'Chiudi':'Assegna a un giorno'}</button>`;
     } else {
-      html += `<button class="assign" onclick="App.unassignSlot('${job.slotId}')">↺ Libera giorno</button>`;
+      html += `<button class="assign" onclick="App.unassignSlot('${job.slotId}')">↺ Libera giorno</button>
+        <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.exportJobToCalendar('${job.id}')">📅 Calendario iPhone</button>`;
     }
     html += `<button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditJob('${job.id}')">✎ Modifica</button>
         <button class="del ${confirmDeleteJobId===job.id?'confirming':''}" onclick="App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Conferma':'Elimina'}</button>
@@ -1317,6 +1398,7 @@
         </div>
         <div class="field"><label>Orario (opzionale)</label>
           <input type="time" value="${formAssist.time}" oninput="App.setFormAssist('time', this.value)">
+          ${formAssist.time ? `<button type="button" class="cancel-btn" style="padding:6px 0" onclick="App.setFormAssist('time','')">✕ Rimuovi orario</button>` : ''}
         </div>
         <div class="field"><label>Note</label>
           <textarea oninput="App.setFormAssist('notes', this.value)" placeholder="Dettagli utili">${esc(formAssist.notes)}</textarea></div>
@@ -1352,6 +1434,7 @@
       }
       c += `<div class="actions">
           <button class="assign" onclick="App.toggleAssistDone('${a.id}')">${a.done ? '↺ Riapri' : '✓ Segna fatto'}</button>
+          ${a.date ? `<button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.exportAssistToCalendar('${a.id}')">📅 Calendario iPhone</button>` : ''}
           <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditAssist('${a.id}')">✎ Modifica</button>
           <button class="del ${confirmDeleteAssistId===a.id?'confirming':''}" onclick="App.requestDeleteAssist('${a.id}')">${confirmDeleteAssistId===a.id?'Sicuro? Conferma':'Elimina'}</button>
         </div>
@@ -1602,6 +1685,7 @@
     setTab, quickAdd, toggleTheme, addSlot, toggleGiornoForm, addJob, toggleLavoroForm, startEditJob, cancelEditJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
     addAssist, startEditAssist, cancelEditAssist, toggleAssistDone, requestDeleteAssist,
     toggleJobReady, toggleAssistReady,
+    exportJobToCalendar, exportAssistToCalendar, exportApptToCalendar,
     toggleAssign: (id) => { assigningJobId = assigningJobId === id ? null : id; render(); },
     toggleExpand: (slotId) => { expandedSlotId = expandedSlotId === slotId ? null : slotId; render(); },
     toggleExpandJob: (jobId) => { expandedJobId = expandedJobId === jobId ? null : jobId; render(); },
@@ -1613,7 +1697,7 @@
     setFormGiornoTeam: (t) => { formGiorno.team = t; render(); },
     setFormGiorno: (k, v) => { formGiorno[k] = v; },
     setFormLavoro: (k, v) => { formLavoro[k] = v; if (k === 'slotId') render(); },
-    setFormAssist: (k, v) => { formAssist[k] = v; if (k === 'date') render(); }
+    setFormAssist: (k, v) => { formAssist[k] = v; if (k === 'date' || k === 'time') render(); }
   };
 
   load();

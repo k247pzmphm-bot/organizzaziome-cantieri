@@ -492,12 +492,19 @@
   }
   .pending-card .name{font-weight:700;font-size:14.5px;}
   .pending-card .meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
-  .pending-card .actions{display:flex;gap:8px;margin-top:10px;}
+  .pending-card .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;overflow-x:auto;}
   .pending-card .actions button{
-    border:none;border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;
+    border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;
+    white-space:nowrap;flex-shrink:0;
   }
   .pending-card .actions .assign{background:var(--ember);color:#fff;}
   .pending-card .actions .del{background:var(--bg);color:var(--ink-soft);}
+  .cal-export-link{
+    display:inline-block;
+    font-size:12px;font-weight:700;
+    color:var(--teal);cursor:pointer;
+    margin-top:6px;
+  }
 
   .banner-err{
     background:var(--error-soft);color:var(--error);padding:12px 14px;border-radius:6px;font-size:13px;margin-bottom:12px;line-height:1.5;
@@ -1084,6 +1091,7 @@
           if (job.product) html += `<div class="job-expand-row"><span class="jx-label">Prodotto</span><span class="jx-val">${esc(job.product)}</span></div>`;
           if (job.price) html += `<div class="job-expand-row"><span class="jx-label">Prezzo</span><span class="jx-val">${esc(job.price)}</span></div>`;
           if (job.notes) html += `<div class="job-expand-row"><span class="jx-label">Note</span><span class="jx-val">${esc(job.notes)}</span></div>`;
+          html += `<div class="cal-export-link" onclick="event.stopPropagation();App.exportJobToCalendar('${job.id}')">📅 Aggiungi a Calendario iPhone</div>`;
           html += `<button class="del-job-btn ${confirmDeleteJobId===job.id?'confirming':''}" onclick="event.stopPropagation();App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Tocca per confermare':'Elimina lavoro'}</button>`;
           html += `<button class="cancel-btn" style="align-self:flex-start" onclick="event.stopPropagation();App.startEditJob('${job.id}')">✎ Modifica lavoro</button>`;
           html += `</div>`;
@@ -1239,8 +1247,8 @@
             html += `<div class="pending-card">
               <div class="name">${a.time? esc(a.time)+' · ' : ''}${esc(a.title)}</div>
               ${a.notes ? `<div class="meta">${esc(a.notes)}</div>` : ''}
+              <div class="cal-export-link" onclick="App.exportApptToCalendar('${a.id}')">📅 Aggiungi a Calendario iPhone</div>
               <div class="actions">
-                <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.exportApptToCalendar('${a.id}')">📅 Calendario iPhone</button>
                 <button class="del ${confirmDeleteApptId===a.id?'confirming':''}" onclick="App.requestDeleteAppt('${a.id}')">${confirmDeleteApptId===a.id?'Sicuro? Conferma':'Elimina'}</button>
               </div>
             </div>`;
@@ -1260,7 +1268,8 @@
       const slot = data.slots.find(s => s.id === job.slotId);
       if (slot) {
         const { day, dow, month } = fmtDate(slot.date);
-        assignedInfo = `<div class="meta" style="margin-top:2px;font-weight:700;color:var(--teal)">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[slot.team])}</div>`;
+        assignedInfo = `<div class="meta" style="margin-top:2px;font-weight:700;color:var(--teal)">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[slot.team])}</div>
+        <div class="cal-export-link" onclick="event.stopPropagation();App.exportJobToCalendar('${job.id}')">📅 Aggiungi a Calendario iPhone</div>`;
       }
     }
     let html = `<div class="pending-card">
@@ -1281,8 +1290,7 @@
     if (isPending) {
       html += `<button class="assign" onclick="App.toggleAssign('${job.id}')">${assigningJobId===job.id?'Chiudi':'Assegna a un giorno'}</button>`;
     } else {
-      html += `<button class="assign" onclick="App.unassignSlot('${job.slotId}')">↺ Libera giorno</button>
-        <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.exportJobToCalendar('${job.id}')">📅 Calendario iPhone</button>`;
+      html += `<button class="assign" onclick="App.unassignSlot('${job.slotId}')">↺ Libera giorno</button>`;
     }
     html += `<button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditJob('${job.id}')">✎ Modifica</button>
         <button class="del ${confirmDeleteJobId===job.id?'confirming':''}" onclick="App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Conferma':'Elimina'}</button>
@@ -1423,6 +1431,7 @@
           <div class="name"><button class="ready-dot ${a.ready?'green':'red'}" onclick="event.stopPropagation();App.toggleAssistReady('${a.id}')" title="${a.ready?'Pronto':'Da organizzare'}"></button>${esc(a.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
           <div class="meta">${esc(a.description) || 'Nessun dettaglio'} · ${dateLabel}</div>
         </div>`;
+      if (a.date) c += `<div class="cal-export-link" onclick="App.exportAssistToCalendar('${a.id}')">📅 Aggiungi a Calendario iPhone</div>`;
       if (isOpen) {
         c += `<div class="job-expand" style="padding-left:0">`;
         if (a.phone) c += `<div class="job-expand-row"><span class="jx-label">Telefono</span><a class="jx-val jx-link" href="tel:${esc(a.phone)}" onclick="event.stopPropagation()">${esc(a.phone)}</a></div>`;
@@ -1434,7 +1443,6 @@
       }
       c += `<div class="actions">
           <button class="assign" onclick="App.toggleAssistDone('${a.id}')">${a.done ? '↺ Riapri' : '✓ Segna fatto'}</button>
-          ${a.date ? `<button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.exportAssistToCalendar('${a.id}')">📅 Calendario iPhone</button>` : ''}
           <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditAssist('${a.id}')">✎ Modifica</button>
           <button class="del ${confirmDeleteAssistId===a.id?'confirming':''}" onclick="App.requestDeleteAssist('${a.id}')">${confirmDeleteAssistId===a.id?'Sicuro? Conferma':'Elimina'}</button>
         </div>

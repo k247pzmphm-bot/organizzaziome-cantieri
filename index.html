@@ -616,6 +616,54 @@
   }
   applyTheme();
 
+  // ====== BLOCCO PIN D'ACCESSO ======
+  const APP_PIN = '586900';
+
+  function isUnlocked(){
+    try { return localStorage.getItem('stufe-unlocked') === 'yes'; }
+    catch(e) { return false; }
+  }
+
+  function renderLockScreen(){
+    const root = document.getElementById('root');
+    root.innerHTML = `
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);">
+        <div style="max-width:320px;width:100%;text-align:center;">
+          <div style="font-size:40px;margin-bottom:12px;">🔥</div>
+          <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:var(--ink);">Cantieri Stufe</h1>
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:24px;">Inserisci il PIN per accedere</div>
+          <form id="pin-form" style="display:flex;flex-direction:column;gap:12px;">
+            <input id="pin-input" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"
+              style="text-align:center;font-size:24px;letter-spacing:10px;padding:14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:'IBM Plex Mono',monospace,monospace;">
+            <button type="submit" class="primary-btn">Sblocca</button>
+          </form>
+          <div id="pin-error" style="color:var(--error);font-size:13px;margin-top:12px;min-height:16px;"></div>
+        </div>
+      </div>
+    `;
+    const form = document.getElementById('pin-form');
+    const input = document.getElementById('pin-input');
+    const errorEl = document.getElementById('pin-error');
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      if (input.value === APP_PIN) {
+        try { localStorage.setItem('stufe-unlocked', 'yes'); } catch(err) { /* nessuna persistenza disponibile, va bene comunque */ }
+        startApp();
+      } else {
+        errorEl.textContent = 'PIN errato, riprova.';
+        input.value = '';
+        input.focus();
+      }
+    });
+    input.focus();
+  }
+
+  function startApp(){
+    load();
+    setInterval(updateClock, 1000);
+  }
+  // ======================================
+
   function formatClockDate(d){
     return `${DOW[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()].toLowerCase()}`;
   }
@@ -1833,8 +1881,11 @@
     setFormAssist: (k, v) => { formAssist[k] = v; if (k === 'date' || k === 'time') render(); }
   };
 
-  load();
-  setInterval(updateClock, 1000);
+  if (isUnlocked()) {
+    startApp();
+  } else {
+    renderLockScreen();
+  }
 })();
 </script>
 </body>

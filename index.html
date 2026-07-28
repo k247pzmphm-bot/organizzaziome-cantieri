@@ -477,6 +477,19 @@
   .ready-dot.green{background:var(--free);}
   .ready-dot.red{background:var(--error);}
 
+  .date-chip-wrap{display:flex;flex-wrap:wrap;gap:8px;}
+  .date-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--ember-soft);color:var(--ember);
+    border-radius:20px;padding:6px 8px 6px 12px;
+    font-size:12.5px;font-weight:600;
+  }
+  .date-chip button{
+    border:none;background:rgba(0,0,0,0.08);color:inherit;
+    width:18px;height:18px;border-radius:50%;cursor:pointer;
+    font-size:10px;display:flex;align-items:center;justify-content:center;padding:0;
+  }
+
   .slot-pick{
     display:flex;flex-direction:column;gap:6px;
     max-height:280px;overflow:auto;
@@ -533,6 +546,17 @@
     color:var(--teal);cursor:pointer;
     margin-top:6px;
   }
+  .cal-export-options{
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    margin-top:8px;padding:10px;
+    background:var(--bg);border:1px solid var(--line);border-radius:6px;
+  }
+  .cal-export-hint{font-size:11px;color:var(--ink-soft);font-weight:600;width:100%;margin-bottom:2px;}
+  .cal-export-options button{
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    border-radius:20px;padding:6px 12px;font-size:11.5px;font-weight:600;cursor:pointer;
+  }
+  .cal-export-options button:active{background:var(--ember-soft);border-color:var(--ember);}
 
   .banner-err{
     background:var(--error-soft);color:var(--error);padding:12px 14px;border-radius:6px;font-size:13px;margin-bottom:12px;line-height:1.5;
@@ -687,7 +711,7 @@
   let calcoliMenuOpen = false;
 
   // stato temporaneo dei form
-  let formGiorno = { team: 'A', date: todayISO(), note: '' };
+  let formGiorno = { team: 'A', pickDate: todayISO(), dates: [], note: '' };
   let giornoFormOpen = false;
   let formLavoro = { client:'', phone:'', address:'', product:'', price:'', notes:'', slotId:'' };
   let jobFormOpen = false;
@@ -709,6 +733,7 @@
   let calViewYear = (new Date()).getFullYear();
   let calViewMonth = (new Date()).getMonth();
   let calSelectedDate = null;
+  let calExportPickerFor = null;
   let statsYear = null;
   let statsListOpen = false;
   let formAppt = { title:'', date:'', time:'', notes:'' };
@@ -759,6 +784,13 @@
     ];
     if (opts.location) lines.push('LOCATION:' + icsEscape(opts.location));
     if (opts.notes) lines.push('DESCRIPTION:' + icsEscape(opts.notes));
+    if (opts.reminderMinutes != null) {
+      lines.push('BEGIN:VALARM');
+      lines.push('ACTION:DISPLAY');
+      lines.push('DESCRIPTION:Promemoria');
+      lines.push('TRIGGER:-PT' + opts.reminderMinutes + 'M');
+      lines.push('END:VALARM');
+    }
     lines.push('END:VEVENT','END:VCALENDAR');
     const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -766,7 +798,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
-  function exportJobToCalendar(jobId){
+  function exportJobToCalendar(jobId, reminderMinutes){
     const job = data.jobs.find(j => j.id === jobId);
     if (!job || !job.slotId) return;
     const slot = data.slots.find(s => s.id === job.slotId);
@@ -776,11 +808,12 @@
       title: 'Cantiere: ' + job.client,
       date: slot.date,
       location: job.address,
-      notes: notesParts.join(' — ')
+      notes: notesParts.join(' — '),
+      reminderMinutes: reminderMinutes != null ? reminderMinutes : null
     });
   }
 
-  function exportAssistToCalendar(id){
+  function exportAssistToCalendar(id, reminderMinutes){
     const a = data.assistances.find(x => x.id === id);
     if (!a || !a.date) return;
     const notesParts = [a.description, a.notes].filter(Boolean);
@@ -789,19 +822,52 @@
       date: a.date,
       time: a.time || '',
       location: a.address,
-      notes: notesParts.join(' — ')
+      notes: notesParts.join(' — '),
+      reminderMinutes: reminderMinutes != null ? reminderMinutes : null
     });
   }
 
-  function exportApptToCalendar(id){
+  function exportApptToCalendar(id, reminderMinutes){
     const a = data.appointments.find(x => x.id === id);
     if (!a) return;
     exportEventToCalendar({
       title: a.title,
       date: a.date,
       time: a.time || '',
-      notes: a.notes
+      notes: a.notes,
+      reminderMinutes: reminderMinutes != null ? reminderMinutes : null
     });
+  }
+
+  function calExportLinkHtml(kind, id, stopProp){
+    const key = kind + ':' + id;
+    const open = calExportPickerFor === key;
+    const sp = stopProp ? 'event.stopPropagation();' : '';
+    let html = `<div class="cal-export-link" onclick="${sp}App.toggleCalExportPicker('${key}')">📅 Aggiungi a Calendario iPhone ${open?'▴':'▾'}</div>`;
+    if (open) {
+      html += `<div class="cal-export-options" onclick="${sp}">
+        <span class="cal-export-hint">Promemoria:</span>
+        <button onclick="App.doCalExport('${kind}','${id}',null)">Nessuno</button>
+        <button onclick="App.doCalExport('${kind}','${id}',15)">15 min prima</button>
+        <button onclick="App.doCalExport('${kind}','${id}',30)">30 min prima</button>
+        <button onclick="App.doCalExport('${kind}','${id}',60)">1 ora prima</button>
+        <button onclick="App.doCalExport('${kind}','${id}',1440)">Il giorno prima</button>
+      </div>`;
+    }
+    return html;
+  }
+
+  function toggleCalExportPicker(key){
+    calExportPickerFor = calExportPickerFor === key ? null : key;
+    render();
+  }
+
+  function doCalExport(kind, id, minutes){
+    calExportPickerFor = null;
+    if (kind === 'job') exportJobToCalendar(id, minutes);
+    else if (kind === 'assist') exportAssistToCalendar(id, minutes);
+    else if (kind === 'appt') exportApptToCalendar(id, minutes);
+    render();
   }
 
   async function load(){
@@ -835,7 +901,7 @@
     render();
   }
 
-  function setTab(t){ tab = t; assigningJobId = null; confirmDeleteJobId = null; confirmDeleteSlotId = null; confirmDeleteAssistId = null; menuOpen = false; editingJobId = null; editingAssistId = null; if (t === 'tiraggio' || t === 'fabbisogno') calcoliMenuOpen = true; render(); }
+  function setTab(t){ tab = t; assigningJobId = null; confirmDeleteJobId = null; confirmDeleteSlotId = null; confirmDeleteAssistId = null; menuOpen = false; editingJobId = null; editingAssistId = null; calExportPickerFor = null; if (t === 'tiraggio' || t === 'fabbisogno') calcoliMenuOpen = true; render(); }
   function toggleCalcoliMenu(){ calcoliMenuOpen = !calcoliMenuOpen; render(); }
 
   function quickAdd(kind){
@@ -845,7 +911,7 @@
       formLavoro = { client:'', phone:'', address:'', product:'', price:'', notes:'', slotId:'' };
     } else if (kind === 'giorno') {
       tab = 'calendario'; giornoFormOpen = true;
-      formGiorno = { team: 'A', date: todayISO(), note: '' };
+      formGiorno = { team: 'A', pickDate: todayISO(), dates: [], note: '' };
     } else if (kind === 'assistenza') {
       tab = 'assistenza'; assistFormOpen = true; editingAssistId = null;
       formAssist = { client:'', phone:'', address:'', description:'', date:'', time:'', notes:'' };
@@ -859,16 +925,35 @@
   // ---------- azioni ----------
   function addSlot(e){
     e.preventDefault();
-    if (!formGiorno.date) return;
-    data.slots.push({ id: uid(), team: formGiorno.team, date: formGiorno.date, jobId: null, note: formGiorno.note.trim() });
-    formGiorno = { team: 'A', date: todayISO(), note: '' };
+    let dates = formGiorno.dates.slice();
+    if (dates.length === 0 && formGiorno.pickDate) dates = [formGiorno.pickDate];
+    if (dates.length === 0) return;
+    dates.forEach(d => {
+      data.slots.push({ id: uid(), team: formGiorno.team, date: d, jobId: null, note: formGiorno.note.trim() });
+    });
+    formGiorno = { team: 'A', pickDate: todayISO(), dates: [], note: '' };
     giornoFormOpen = false;
     persist();
   }
 
+  function addGiornoDate(){
+    const d = formGiorno.pickDate;
+    if (!d) return;
+    if (!formGiorno.dates.includes(d)) {
+      formGiorno.dates.push(d);
+      formGiorno.dates.sort();
+    }
+    render();
+  }
+
+  function removeGiornoDate(d){
+    formGiorno.dates = formGiorno.dates.filter(x => x !== d);
+    render();
+  }
+
   function toggleGiornoForm(){
     giornoFormOpen = !giornoFormOpen;
-    if (giornoFormOpen) formGiorno = { team: 'A', date: todayISO(), note: '' };
+    if (giornoFormOpen) formGiorno = { team: 'A', pickDate: todayISO(), dates: [], note: '' };
     render();
   }
 
@@ -1141,6 +1226,11 @@
   function renderCalendario(){
     let html = `<button class="primary-btn" style="margin-bottom:16px" onclick="App.toggleGiornoForm()">${giornoFormOpen ? 'Chiudi' : '+ Aggiungi giorno'}</button>`;
     if (giornoFormOpen) {
+      const datesChips = formGiorno.dates.map(d => {
+        const { day, dow, month } = fmtDate(d);
+        return `<span class="date-chip">${day} ${MONTHS[month].slice(0,3)} · ${dow}<button type="button" onclick="App.removeGiornoDate('${d}')" title="Rimuovi">✕</button></span>`;
+      }).join('');
+      const count = formGiorno.dates.length;
       html += `<form onsubmit="App.addSlot(event)" style="margin-bottom:22px">
         <div class="field">
           <label>Squadra</label>
@@ -1150,14 +1240,21 @@
           </div>
         </div>
         <div class="field">
-          <label>Data disponibile</label>
-          <input type="date" value="${formGiorno.date}" oninput="App.setFormGiorno('date', this.value)" required>
+          <label>Scegli le date, una alla volta</label>
+          <div style="display:flex;gap:8px;">
+            <input type="date" style="flex:1" value="${formGiorno.pickDate}" oninput="App.setFormGiorno('pickDate', this.value)">
+            <button type="button" class="primary-btn" style="margin:0;padding:0 18px;white-space:nowrap" onclick="App.addGiornoDate()">+ Aggiungi</button>
+          </div>
         </div>
+        ${count > 0 ? `<div class="field">
+          <label>Date selezionate (${count})</label>
+          <div class="date-chip-wrap">${datesChips}</div>
+        </div>` : ''}
         <div class="field">
-          <label>Nota (opzionale)</label>
+          <label>Nota (opzionale, vale per tutte le date)</label>
           <input type="text" placeholder="es. solo mattina, zona nord..." value="${esc(formGiorno.note)}" oninput="App.setFormGiorno('note', this.value)">
         </div>
-        <button class="primary-btn" type="submit">Aggiungi giorno disponibile</button>
+        <button class="primary-btn" type="submit">${count > 1 ? `Aggiungi ${count} giorni disponibili` : 'Aggiungi giorno disponibile'}</button>
       </form>`;
     }
 
@@ -1207,7 +1304,7 @@
           if (job.product) html += `<div class="job-expand-row"><span class="jx-label">Prodotto</span><span class="jx-val">${esc(job.product)}</span></div>`;
           if (job.price) html += `<div class="job-expand-row"><span class="jx-label">Prezzo</span><span class="jx-val">${esc(job.price)}</span></div>`;
           if (job.notes) html += `<div class="job-expand-row"><span class="jx-label">Note</span><span class="jx-val">${esc(job.notes)}</span></div>`;
-          html += `<div class="cal-export-link" onclick="event.stopPropagation();App.exportJobToCalendar('${job.id}')">📅 Aggiungi a Calendario iPhone</div>`;
+          html += calExportLinkHtml('job', job.id, true);
           html += `<button class="del-job-btn ${confirmDeleteJobId===job.id?'confirming':''}" onclick="event.stopPropagation();App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Tocca per confermare':'Elimina lavoro'}</button>`;
           html += `<button class="cancel-btn" style="align-self:flex-start" onclick="event.stopPropagation();App.startEditJob('${job.id}')">✎ Modifica lavoro</button>`;
           html += `</div>`;
@@ -1363,7 +1460,7 @@
             html += `<div class="pending-card">
               <div class="name">${a.time? esc(a.time)+' · ' : ''}${esc(a.title)}</div>
               ${a.notes ? `<div class="meta">${esc(a.notes)}</div>` : ''}
-              <div class="cal-export-link" onclick="App.exportApptToCalendar('${a.id}')">📅 Aggiungi a Calendario iPhone</div>
+              ${calExportLinkHtml('appt', a.id, false)}
               <div class="actions">
                 <button class="del ${confirmDeleteApptId===a.id?'confirming':''}" onclick="App.requestDeleteAppt('${a.id}')">${confirmDeleteApptId===a.id?'Sicuro? Conferma':'Elimina'}</button>
               </div>
@@ -1385,7 +1482,7 @@
       if (slot) {
         const { day, dow, month } = fmtDate(slot.date);
         assignedInfo = `<div class="meta" style="margin-top:2px;font-weight:700;color:var(--teal)">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[slot.team])}</div>
-        <div class="cal-export-link" onclick="event.stopPropagation();App.exportJobToCalendar('${job.id}')">📅 Aggiungi a Calendario iPhone</div>`;
+        ${calExportLinkHtml('job', job.id, true)}`;
       }
     }
     let html = `<div class="pending-card">
@@ -1558,7 +1655,7 @@
           <div class="name"><button class="ready-dot ${a.ready?'green':'red'}" onclick="event.stopPropagation();App.toggleAssistReady('${a.id}')" title="${a.ready?'Pronto':'Da organizzare'}"></button>${esc(a.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
           <div class="meta">${esc(a.description) || 'Nessun dettaglio'} · ${dateLabel}</div>
         </div>`;
-      if (a.date) c += `<div class="cal-export-link" onclick="App.exportAssistToCalendar('${a.id}')">📅 Aggiungi a Calendario iPhone</div>`;
+      if (a.date) c += calExportLinkHtml('assist', a.id, false);
       if (isOpen) {
         c += `<div class="job-expand" style="padding-left:0">`;
         if (a.phone) c += `<div class="job-expand-row"><span class="jx-label">Telefono</span><a class="jx-val jx-link" href="tel:${esc(a.phone)}" onclick="event.stopPropagation()">${esc(a.phone)}</a></div>`;
@@ -1862,10 +1959,11 @@
   }
 
   window.App = {
-    setTab, quickAdd, toggleTheme, addSlot, toggleGiornoForm, addJob, toggleLavoroForm, startEditJob, cancelEditJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
+    setTab, quickAdd, toggleTheme, addSlot, toggleGiornoForm, addGiornoDate, removeGiornoDate, addJob, toggleLavoroForm, startEditJob, cancelEditJob, unassignSlot, removeSlot, requestRemoveSlot, assignJobToSlot, deleteJob, requestDeleteJob,
     addAssist, startEditAssist, cancelEditAssist, toggleAssistDone, requestDeleteAssist,
     toggleJobReady, toggleAssistReady,
     exportJobToCalendar, exportAssistToCalendar, exportApptToCalendar,
+    toggleCalExportPicker, doCalExport,
     toggleAssign: (id) => { assigningJobId = assigningJobId === id ? null : id; render(); },
     toggleExpand: (slotId) => { expandedSlotId = expandedSlotId === slotId ? null : slotId; render(); },
     toggleExpandJob: (jobId) => { expandedJobId = expandedJobId === jobId ? null : jobId; render(); },

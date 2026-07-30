@@ -1280,35 +1280,31 @@
       byDate[date].forEach(slot => {
         const job = slot.jobId ? data.jobs.find(j => j.id === slot.jobId) : null;
         const teamName = esc(data.teams[slot.team]);
-        const isOpen = job && expandedSlotId === slot.id;
-        html += `<div class="slot-row" ${job ? `onclick="App.toggleExpand('${slot.id}')" style="cursor:pointer"` : ''}>
+        const isOpen = expandedSlotId === slot.id;
+        html += `<div class="slot-row" onclick="App.toggleExpand('${slot.id}')" style="cursor:pointer">
           <span class="team-dot ${slot.team}"></span>
           <div class="slot-info">
-            <div class="slot-team">${teamName}</div>`;
-        if (job) {
-          const detail = [job.product, job.address].filter(Boolean).map(esc).join(' · ');
-          html += `<div class="slot-main">${esc(job.client)}</div><div class="slot-detail">${detail}</div>`;
-        } else {
-          html += `<div class="slot-main free">Libero${slot.note ? ' · '+esc(slot.note) : ''}</div>`;
-        }
-        html += `</div>`;
-        if (job) {
-          html += `<span class="expand-arrow ${isOpen?'open':''}">▾</span><span class="badge busy">Occupato</span><button class="icon-btn" onclick="event.stopPropagation();App.unassignSlot('${slot.id}')" title="Libera il giorno">↺</button>`;
-        } else {
-          html += `<span class="badge free">Libero</span><button class="icon-btn ${confirmDeleteSlotId===slot.id?'confirming':''}" onclick="App.requestRemoveSlot('${slot.id}')" title="Elimina giorno">${confirmDeleteSlotId===slot.id?'Sicuro?':'✕'}</button>`;
-        }
-        html += `</div>`;
+            <div class="slot-team">${teamName}</div>
+            <div class="slot-main ${job?'':'free'}">${job ? esc(job.client) : 'Libero'}</div>
+          </div>
+          <span class="expand-arrow ${isOpen?'open':''}">▾</span>
+        </div>`;
         if (isOpen) {
           html += `<div class="job-expand">`;
-          html += `<div class="job-expand-row"><span class="jx-label">Cliente</span><span class="jx-val">${esc(job.client)}</span></div>`;
-          if (job.phone) html += `<div class="job-expand-row"><span class="jx-label">Telefono</span><a class="jx-val jx-link" href="tel:${esc(job.phone)}" onclick="event.stopPropagation()">${esc(job.phone)}</a></div>`;
-          if (job.address) html += `<div class="job-expand-row"><span class="jx-label">Indirizzo</span><span class="jx-val">${esc(job.address)}</span></div>`;
-          if (job.product) html += `<div class="job-expand-row"><span class="jx-label">Prodotto</span><span class="jx-val">${esc(job.product)}</span></div>`;
-          if (job.price) html += `<div class="job-expand-row"><span class="jx-label">Prezzo</span><span class="jx-val">${esc(job.price)}</span></div>`;
-          if (job.notes) html += `<div class="job-expand-row"><span class="jx-label">Note</span><span class="jx-val">${esc(job.notes)}</span></div>`;
-          html += calExportLinkHtml('job', job.id, true);
-          html += `<button class="del-job-btn ${confirmDeleteJobId===job.id?'confirming':''}" onclick="event.stopPropagation();App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Tocca per confermare':'Elimina lavoro'}</button>`;
-          html += `<button class="cancel-btn" style="align-self:flex-start" onclick="event.stopPropagation();App.startEditJob('${job.id}')">✎ Modifica lavoro</button>`;
+          if (job) {
+            if (job.phone) html += `<div class="job-expand-row"><span class="jx-label">Telefono</span><a class="jx-val jx-link" href="tel:${esc(job.phone)}" onclick="event.stopPropagation()">${esc(job.phone)}</a></div>`;
+            if (job.address) html += `<div class="job-expand-row"><span class="jx-label">Indirizzo</span><span class="jx-val">${esc(job.address)}</span></div>`;
+            if (job.product) html += `<div class="job-expand-row"><span class="jx-label">Prodotto</span><span class="jx-val">${esc(job.product)}</span></div>`;
+            if (job.price) html += `<div class="job-expand-row"><span class="jx-label">Prezzo</span><span class="jx-val">${esc(job.price)}</span></div>`;
+            if (job.notes) html += `<div class="job-expand-row"><span class="jx-label">Note</span><span class="jx-val">${esc(job.notes)}</span></div>`;
+            html += calExportLinkHtml('job', job.id, true);
+            html += `<button class="cancel-btn" style="align-self:flex-start" onclick="event.stopPropagation();App.unassignSlot('${slot.id}')">↺ Libera il giorno</button>`;
+            html += `<button class="del-job-btn ${confirmDeleteJobId===job.id?'confirming':''}" onclick="event.stopPropagation();App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Tocca per confermare':'Elimina lavoro'}</button>`;
+            html += `<button class="cancel-btn" style="align-self:flex-start" onclick="event.stopPropagation();App.startEditJob('${job.id}')">✎ Modifica lavoro</button>`;
+          } else {
+            if (slot.note) html += `<div class="job-expand-row"><span class="jx-label">Nota</span><span class="jx-val">${esc(slot.note)}</span></div>`;
+            html += `<button class="del-job-btn ${confirmDeleteSlotId===slot.id?'confirming':''}" onclick="event.stopPropagation();App.requestRemoveSlot('${slot.id}')">${confirmDeleteSlotId===slot.id?'Sicuro? Tocca per confermare':'Elimina giorno'}</button>`;
+          }
           html += `</div>`;
         }
       });
@@ -1477,20 +1473,17 @@
 
   function jobCard(job, isPending){
     const isOpen = expandedJobId === job.id;
-    const meta = [job.product, job.phone, job.address].filter(Boolean).map(esc).join(' · ') || 'Nessun dettaglio';
     let assignedInfo = '';
     if (!isPending && job.slotId) {
       const slot = data.slots.find(s => s.id === job.slotId);
       if (slot) {
         const { day, dow, month } = fmtDate(slot.date);
-        assignedInfo = `<div class="meta" style="margin-top:2px;font-weight:700;color:var(--teal)">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[slot.team])}</div>
-        ${calExportLinkHtml('job', job.id, true)}`;
+        assignedInfo = `<div class="meta" style="margin-top:2px;font-weight:700;color:var(--teal)">${day} ${MONTHS[month]} · ${dow} — ${esc(data.teams[slot.team])}</div>`;
       }
     }
     let html = `<div class="pending-card">
       <div onclick="App.toggleExpandJob('${job.id}')" style="cursor:pointer">
         <div class="name">${isPending ? `<button class="ready-dot ${job.ready?'green':'red'}" onclick="event.stopPropagation();App.toggleJobReady('${job.id}')" title="${job.ready?'Pronto':'Da organizzare'}"></button>` : ''}${esc(job.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
-        <div class="meta">${meta}</div>
         ${assignedInfo}
       </div>`;
     if (isOpen) {
@@ -1499,17 +1492,18 @@
       if (job.address) html += `<div class="job-expand-row"><span class="jx-label">Indirizzo</span><span class="jx-val">${esc(job.address)}</span></div>`;
       if (job.product) html += `<div class="job-expand-row"><span class="jx-label">Prodotto</span><span class="jx-val">${esc(job.product)}</span></div>`;
       if (job.notes) html += `<div class="job-expand-row"><span class="jx-label">Note</span><span class="jx-val">${esc(job.notes)}</span></div>`;
+      if (!isPending) html += calExportLinkHtml('job', job.id, true);
       html += `</div>`;
+      html += `<div class="actions">`;
+      if (isPending) {
+        html += `<button class="assign" onclick="App.toggleAssign('${job.id}')">${assigningJobId===job.id?'Chiudi':'Assegna a un giorno'}</button>`;
+      } else {
+        html += `<button class="assign" onclick="App.unassignSlot('${job.slotId}')">↺ Libera giorno</button>`;
+      }
+      html += `<button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditJob('${job.id}')">✎ Modifica</button>
+          <button class="del ${confirmDeleteJobId===job.id?'confirming':''}" onclick="App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Conferma':'Elimina'}</button>
+        </div>`;
     }
-    html += `<div class="actions">`;
-    if (isPending) {
-      html += `<button class="assign" onclick="App.toggleAssign('${job.id}')">${assigningJobId===job.id?'Chiudi':'Assegna a un giorno'}</button>`;
-    } else {
-      html += `<button class="assign" onclick="App.unassignSlot('${job.slotId}')">↺ Libera giorno</button>`;
-    }
-    html += `<button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditJob('${job.id}')">✎ Modifica</button>
-        <button class="del ${confirmDeleteJobId===job.id?'confirming':''}" onclick="App.requestDeleteJob('${job.id}')">${confirmDeleteJobId===job.id?'Sicuro? Conferma':'Elimina'}</button>
-      </div>`;
     if (isPending && assigningJobId === job.id) {
       const free = freeSlotsList();
       html += `<div class="slot-pick" style="margin-top:10px">`;
@@ -1651,13 +1645,12 @@
 
     function assistCard(a){
       const isOpen = expandedAssistId === a.id;
-      const dateLabel = a.date ? (() => { const { day, dow, month } = fmtDate(a.date); return `${day} ${MONTHS[month]} · ${dow}${a.time? ' · '+esc(a.time) : ''}`; })() : 'Nessuna data';
+      const dateLabel = a.date ? (() => { const { day, dow, month } = fmtDate(a.date); return `${day} ${MONTHS[month]} · ${dow}${a.time? ' · '+esc(a.time) : ''}`; })() : null;
       let c = `<div class="pending-card">
         <div onclick="App.toggleExpandAssist('${a.id}')" style="cursor:pointer">
           <div class="name"><button class="ready-dot ${a.ready?'green':'red'}" onclick="event.stopPropagation();App.toggleAssistReady('${a.id}')" title="${a.ready?'Pronto':'Da organizzare'}"></button>${esc(a.client)} <span class="expand-arrow ${isOpen?'open':''}">▾</span></div>
-          <div class="meta">${esc(a.description) || 'Nessun dettaglio'} · ${dateLabel}</div>
+          ${dateLabel ? `<div class="meta">${dateLabel}</div>` : ''}
         </div>`;
-      if (a.date) c += calExportLinkHtml('assist', a.id, false);
       if (isOpen) {
         c += `<div class="job-expand" style="padding-left:0">`;
         if (a.phone) c += `<div class="job-expand-row"><span class="jx-label">Telefono</span><a class="jx-val jx-link" href="tel:${esc(a.phone)}" onclick="event.stopPropagation()">${esc(a.phone)}</a></div>`;
@@ -1665,14 +1658,15 @@
         if (a.description) c += `<div class="job-expand-row"><span class="jx-label">Intervento</span><span class="jx-val">${esc(a.description)}</span></div>`;
         if (a.date) c += `<div class="job-expand-row"><span class="jx-label">Data</span><span class="jx-val">${dateLabel}</span></div>`;
         if (a.notes) c += `<div class="job-expand-row"><span class="jx-label">Note</span><span class="jx-val">${esc(a.notes)}</span></div>`;
+        if (a.date) c += calExportLinkHtml('assist', a.id, true);
         c += `</div>`;
+        c += `<div class="actions">
+            <button class="assign" onclick="App.toggleAssistDone('${a.id}')">${a.done ? '↺ Riapri' : '✓ Segna fatto'}</button>
+            <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditAssist('${a.id}')">✎ Modifica</button>
+            <button class="del ${confirmDeleteAssistId===a.id?'confirming':''}" onclick="App.requestDeleteAssist('${a.id}')">${confirmDeleteAssistId===a.id?'Sicuro? Conferma':'Elimina'}</button>
+          </div>`;
       }
-      c += `<div class="actions">
-          <button class="assign" onclick="App.toggleAssistDone('${a.id}')">${a.done ? '↺ Riapri' : '✓ Segna fatto'}</button>
-          <button class="del" style="background:var(--panel);color:var(--ink-soft);border:1px solid var(--line)" onclick="App.startEditAssist('${a.id}')">✎ Modifica</button>
-          <button class="del ${confirmDeleteAssistId===a.id?'confirming':''}" onclick="App.requestDeleteAssist('${a.id}')">${confirmDeleteAssistId===a.id?'Sicuro? Conferma':'Elimina'}</button>
-        </div>
-      </div>`;
+      c += `</div>`;
       return c;
     }
 
